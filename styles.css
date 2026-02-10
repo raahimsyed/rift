@@ -21,7 +21,7 @@ body {
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
-    cursor: url('cursor.jpg'), auto;
+    cursor: url('cursor.png'), auto;
 }
 
 .container {
