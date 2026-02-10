@@ -2,12 +2,11 @@
   "name": "rift-proxy",
   "version": "1.0.0",
   "description": "Rift unblocked proxy",
-  "main": "server.js",
+  "main": "server/server.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server/server.js"
   },
   "dependencies": {
-    "express": "^4.18.2",
-    "node-fetch": "^2.6.1"
+    "express": "^4.22.1"
   }
 }
