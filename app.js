@@ -1,0 +1,114 @@
+document.addEventListener('DOMContentLoaded', function() {
+    const urlInput = document.getElementById('urlInput');
+    const goButton = document.getElementById('goButton');
+    const typingText = document.getElementById('typingText');
+    
+    // Quotes to cycle through
+    const quotes = [
+        "the quiet keeps rifting wider",
+        "time keeps moving through what's already rifted",
+        "the space between moments keeps rifting",
+        "the quiet keeps rifting wider"
+    ];
+    
+    let currentQuoteIndex = 0;
+    let currentCharIndex = 0;
+    let isTyping = true;
+    
+    function typeEffect() {
+        if (isTyping) {
+            if (currentCharIndex < quotes[currentQuoteIndex].length) {
+                typingText.textContent += quotes[currentQuoteIndex].charAt(currentCharIndex);
+                currentCharIndex++;
+                setTimeout(typeEffect, 80);
+            } else {
+                isTyping = false;
+                setTimeout(typeEffect, 2000); // Wait before erasing
+            }
+        } else {
+            if (currentCharIndex > 0) {
+                typingText.textContent = quotes[currentQuoteIndex].substring(0, currentCharIndex - 1);
+                currentCharIndex--;
+                setTimeout(typeEffect, 40);
+            } else {
+                isTyping = true;
+                currentQuoteIndex = (currentQuoteIndex + 1) % quotes.length;
+                setTimeout(typeEffect, 500); // Wait before typing next quote
+            }
+        }
+    }
+    
+    // Start typing effect
+    typeEffect();
+    
+    function handleGo() {
+        const input = urlInput.value.trim();
+        if (!input) return;
+        
+        let url = input;
+        
+        // Check if input is a URL or search term
+        if (!input.includes('.') && !input.startsWith('http')) {
+            // Treat as search query
+            url = 'https://www.google.com/search?q=' + encodeURIComponent(input);
+        } else if (!input.startsWith('http://') && !input.startsWith('https://')) {
+            // Add protocol if missing
+            url = 'https://' + input;
+        }
+        
+        // Redirect to proxy endpoint
+        window.location.href = '/proxy?url=' + encodeURIComponent(url);
+    }
+    
+    goButton.addEventListener('click', handleGo);
+    
+    urlInput.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            handleGo();
+        }
+    });
+    
+    // Cursor light effect
+    const cursorLight = document.createElement('div');
+    cursorLight.className = 'cursor-light';
+    document.body.appendChild(cursorLight);
+    
+    // Store previous positions for line trail
+    let prevX = null;
+    let prevY = null;
+    
+    document.addEventListener('mousemove', function(e) {
+        // Update light position
+        cursorLight.style.left = e.clientX + 'px';
+        cursorLight.style.top = e.clientY + 'px';
+        
+        // Create line trail
+        if (prevX !== null && prevY !== null) {
+            const trail = document.createElement('div');
+            trail.className = 'cursor-trail';
+            
+            // Calculate distance and angle between points
+            const dx = e.clientX - prevX;
+            const dy = e.clientY - prevY;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            const angle = Math.atan2(dy, dx) * 180 / Math.PI;
+            
+            // Position and style the line
+            trail.style.left = prevX + 'px';
+            trail.style.top = prevY + 'px';
+            trail.style.width = distance + 'px';
+            trail.style.transform = `rotate(${angle}deg)`;
+            trail.style.transformOrigin = '0 50%';
+            
+            document.body.appendChild(trail);
+            
+            // Remove trail after animation
+            setTimeout(() => {
+                trail.remove();
+            }, 500);
+        }
+        
+        prevX = e.clientX;
+        prevY = e.clientY;
+    });
+});
