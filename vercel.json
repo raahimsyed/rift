@@ -26,7 +26,7 @@
       "use": "@vercel/static"
     },
     {
-      "src": "cursor.jpg",
+      "src": "cursor.png",
       "use": "@vercel/static"
     }
   ],
