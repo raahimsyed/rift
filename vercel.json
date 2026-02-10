@@ -1,0 +1,64 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "server.js",
+      "use": "@vercel/node"
+    },
+    {
+      "src": "styles.css",
+      "use": "@vercel/static"
+    },
+    {
+      "src": "app.js",
+      "use": "@vercel/static"
+    },
+    {
+      "src": "index.html",
+      "use": "@vercel/static"
+    },
+    {
+      "src": "RunMedium-2VJo.ttf",
+      "use": "@vercel/static"
+    },
+    {
+      "src": "background.jpg",
+      "use": "@vercel/static"
+    },
+    {
+      "src": "cursor.jpg",
+      "use": "@vercel/static"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/styles.css",
+      "dest": "/styles.css"
+    },
+    {
+      "src": "/app.js",
+      "dest": "/app.js"
+    },
+    {
+      "src": "/RunMedium-2VJo.ttf",
+      "dest": "/RunMedium-2VJo.ttf"
+    },
+    {
+      "src": "/background.jpg",
+      "dest": "/background.jpg"
+    },
+    {
+      "src": "/cursor.jpg",
+      "dest": "/cursor.jpg"
+    },
+    {
+      "src": "/proxy",
+      "dest": "/server.js"
+    },
+    {
+      "src": "/",
+      "dest": "/server.js"
+    }
+  ]
+}
+
