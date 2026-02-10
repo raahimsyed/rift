@@ -13,29 +13,50 @@
             <h1>Rift</h1>
             <div id="typingText" class="typing-text"></div>
         </header>
-        
-        <main>
-        </main>
+
+        <div class="home-cards">
+            <a href="/games" class="home-card">
+                <span class="material-icons">sports_esports</span>
+                <span class="home-card-label">games</span>
+            </a>
+            <a href="/apps" class="home-card">
+                <span class="material-icons">apps</span>
+                <span class="home-card-label">apps</span>
+            </a>
+            <a href="/browser" class="home-card">
+                <span class="material-icons">language</span>
+                <span class="home-card-label">browser</span>
+            </a>
+            <a href="/settings" class="home-card">
+                <span class="material-icons">settings</span>
+                <span class="home-card-label">settings</span>
+            </a>
+        </div>
     </div>
     
     <nav class="bottom-nav">
-        <button class="nav-button" href="index.html">
+        <button class="nav-button active" onclick="location.href='/'">
             <span class="material-icons">home</span>
         </button>
-        <button class="nav-button" href="games.html">
+        <button class="nav-button" onclick="location.href='/games'">
             <span class="material-icons">sports_esports</span>
         </button>
-        <button class="nav-button" href="apps.html">
+        <button class="nav-button" onclick="location.href='/apps'">
             <span class="material-icons">apps</span>
         </button>
-        <button class="nav-button" href="browser.html">
+        <button class="nav-button" onclick="location.href='/browser'">
             <span class="material-icons">language</span>
         </button>
-        <button class="nav-button" href="settings.html">
+        <button class="nav-button" onclick="location.href='/settings'">
             <span class="material-icons">settings</span>
         </button>
     </nav>
     
     <script src="./global/js/global.js"></script>
+    <script src="/components/cloaker.js"></script>
+    <script src="/components/overlay.js"></script>
+    <script src="/components/games.js"></script>
+    <script src="/components/components.js"></script>
+    <script src="/components/404.js"></script>
 </body>
 </html>

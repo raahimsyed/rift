@@ -1,6 +1,6 @@
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     const typingText = document.getElementById('typingText');
-    
+
     // Quotes to cycle through
     const quotes = [
         "the quiet keeps rifting wider",
@@ -8,12 +8,13 @@ document.addEventListener('DOMContentLoaded', function() {
         "the space between moments keeps rifting",
         "the quiet keeps rifting wider"
     ];
-    
+
     let currentQuoteIndex = 0;
     let currentCharIndex = 0;
     let isTyping = true;
-    
+
     function typeEffect() {
+        if (!typingText) return;
         if (isTyping) {
             if (currentCharIndex < quotes[currentQuoteIndex].length) {
                 typingText.textContent += quotes[currentQuoteIndex].charAt(currentCharIndex);
@@ -35,51 +36,73 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
     }
-    
+
     // Start typing effect
-    typeEffect();
-    
+    if (typingText) typeEffect();
+
     // Cursor light effect
     const cursorLight = document.createElement('div');
     cursorLight.className = 'cursor-light';
     document.body.appendChild(cursorLight);
-    
+
     // Store previous positions for line trail
     let prevX = null;
     let prevY = null;
-    
-    document.addEventListener('mousemove', function(e) {
+
+    document.addEventListener('mousemove', function (e) {
+        // Skip cursor effects when game viewer is active
+        const viewer = document.getElementById('game-viewer');
+        if (viewer && viewer.classList.contains('active')) {
+            cursorLight.style.display = 'none';
+            return;
+        }
+        cursorLight.style.display = '';
+
         // Update light position
         cursorLight.style.left = e.clientX + 'px';
         cursorLight.style.top = e.clientY + 'px';
-        
+
         // Create line trail
         if (prevX !== null && prevY !== null) {
             const trail = document.createElement('div');
             trail.className = 'cursor-trail';
-            
+
             // Calculate distance and angle between points
             const dx = e.clientX - prevX;
             const dy = e.clientY - prevY;
             const distance = Math.sqrt(dx * dx + dy * dy);
             const angle = Math.atan2(dy, dx) * 180 / Math.PI;
-            
+
             // Position and style the line
             trail.style.left = prevX + 'px';
             trail.style.top = prevY + 'px';
             trail.style.width = distance + 'px';
             trail.style.transform = `rotate(${angle}deg)`;
             trail.style.transformOrigin = '0 50%';
-            
+
             document.body.appendChild(trail);
-            
+
             // Remove trail after animation
             setTimeout(() => {
                 trail.remove();
             }, 500);
         }
-        
+
         prevX = e.clientX;
         prevY = e.clientY;
     });
+
+    // Nav toggle
+    const nav = document.querySelector('.bottom-nav');
+    if (nav) {
+        const toggle = document.createElement('button');
+        toggle.className = 'nav-toggle';
+        toggle.title = 'Toggle navigation';
+        document.body.appendChild(toggle);
+
+        toggle.addEventListener('click', () => {
+            nav.classList.toggle('hidden');
+            toggle.classList.toggle('nav-is-hidden');
+        });
+    }
 });

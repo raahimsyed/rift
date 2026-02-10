@@ -4,9 +4,20 @@ const path = require('path');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Serve static files from public/ and assets/
+// Serve static files from public/, assets/, and components/
 app.use(express.static(path.join(__dirname, '..', 'public')));
 app.use('/assets', express.static(path.join(__dirname, '..', 'assets')));
+app.use('/components', express.static(path.join(__dirname, '..', 'components')));
+
+// Clean URLs — serve .html files without extension
+app.use((req, res, next) => {
+    if (!req.path.includes('.') && req.path !== '/') {
+        const file = path.join(__dirname, '..', 'public', req.path + '.html');
+        res.sendFile(file, (err) => { if (err) next(); });
+    } else {
+        next();
+    }
+});
 
 // Proxy endpoint
 app.get('/proxy', async (req, res) => {
