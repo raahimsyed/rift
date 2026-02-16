@@ -25,13 +25,33 @@ async function ensureTransport() {
     }
 }
 
+function normalizeTarget(raw) {
+    const target = search(raw, searchEngine.value);
+    try {
+        return new URL(target, window.location.origin).toString();
+    } catch {
+        return null;
+    }
+}
+
 function encodeTarget(input) {
     const encoder = self.__scramjet$bundle?.rewriters?.url?.encodeUrl;
-    return encoder ? encoder(input) : input;
+    if (!encoder) return input;
+
+    try {
+        return encoder(input);
+    } catch (err) {
+        const fallback = new URL(input, window.location.origin).toString();
+        return encoder(fallback);
+    }
 }
 
 function loadIntoFrame(raw) {
-    const target = search(raw, searchEngine.value);
+    const target = normalizeTarget(raw);
+    if (!target) {
+        throw new TypeError("Invalid URL");
+    }
+
     const encoded = encodeTarget(target);
     frame.src = encoded;
     frame.dataset.url = target;
