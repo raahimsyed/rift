@@ -110,3 +110,10 @@ if (require.main === module) {
 
 module.exports = app;
 module.exports.startServer = startServer;
+if (require.main === module) {
+    app.listen(PORT, () => {
+        console.log(`Rift running on http://localhost:${PORT}`);
+    });
+}
+
+module.exports = app;
