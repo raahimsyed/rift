@@ -4,6 +4,49 @@
     {
       "source": "/(.*)",
       "destination": "/api/index"
+  "builds": [
+    {
+      "src": "server/server.js",
+      "use": "@vercel/node"
+    }
+  ],
+  "rewrites": [
+    {
+      "source": "/proxy",
+      "destination": "/server/server.js"
+    },
+    {
+      "source": "/assets/:path*",
+      "destination": "/assets/:path*"
+    },
+    {
+      "source": "/components/:path*",
+      "destination": "/components/:path*"
+    },
+    {
+      "source": "/global/:path*",
+      "destination": "/public/global/:path*"
+    },
+    {
+      "source": "/games",
+      "destination": "/public/games.html"
+    },
+    {
+      "source": "/apps",
+      "destination": "/public/apps.html"
+    },
+    {
+      "source": "/browser",
+      "destination": "/public/browser.html"
+    },
+    {
+      "source": "/settings",
+      "destination": "/public/settings.html"
+    },
+    {
+      "source": "/",
+      "destination": "/public/index.html"
+
     }
   ]
 }
