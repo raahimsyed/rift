@@ -276,11 +276,7 @@ header h1 {
 }
 
 /* ── Browser Page ── */
-.browser-page {
-  align-items: flex-start;
-}
-
-.browser-page .browser-container {
+.container.browser-container {
   max-width: none;
   width: 100%;
   display: flex;
@@ -289,7 +285,7 @@ header h1 {
   margin: 0 auto;
 }
 
-.browser-page .browser-container header {
+.container.browser-container header {
   width: 100%;
 }
 
