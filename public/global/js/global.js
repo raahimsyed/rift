@@ -105,4 +105,11 @@ document.addEventListener('DOMContentLoaded', function () {
             toggle.classList.toggle('nav-is-hidden');
         });
     }
+
+    // Apply saved nav position on all pages
+document.addEventListener('DOMContentLoaded', () => {
+    const savedPosition = localStorage.getItem('rift__nav-position') || 'bottom';
+    document.body.classList.add('nav-pos-' + savedPosition);
+});
+
 });

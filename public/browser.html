@@ -3,16 +3,67 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Rift Proxy</title>
+    <title>Rift Browser</title>
     <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
     <link rel="stylesheet" href="./global/css/global.css">
+    <link rel="stylesheet" href="./index.css">
 </head>
 <body class="browser-page">
+    <div class="container">
     <div class="container browser-container">
         <header>
-            <h1>Rift</h1>
+            <h1>rift</h1>
+            <p class="page-subtitle">private browsing powered by scramjet</p>
         </header>
 
+        <div class="tab-rail">
+            <div class="tab active">
+                <span class="material-icons">tab</span>
+                <span>session 1</span>
+            </div>
+            <div class="tab ghost">
+                <span class="material-icons">add</span>
+                <span>new session</span>
+            </div>
+        </div>
+
+        <div class="address-bar">
+            <div class="nav-cluster">
+                <button class="nav-btn" id="back-btn" title="Back" type="button">
+                    <span class="material-icons">chevron_left</span>
+                </button>
+                <button class="nav-btn" id="forward-btn" title="Forward" type="button">
+                    <span class="material-icons">chevron_right</span>
+                </button>
+                <button class="nav-btn" id="refresh-btn" title="Refresh" type="button">
+                    <span class="material-icons">refresh</span>
+                </button>
+            </div>
+
+            <form id="sj-form" class="address-form" autocomplete="off">
+                <input id="sj-search-engine" value="https://duckduckgo.com/?q=%s" type="hidden" />
+                <input id="sj-address" type="text" placeholder="enter a url or search" autocomplete="off" />
+            </form>
+
+            <div class="nav-cluster">
+                <button class="nav-btn" id="home-btn" title="Home" type="button">
+                    <span class="material-icons">home</span>
+                </button>
+            </div>
+        </div>
+
+        <div class="browser-frame">
+            <iframe id="sj-frame" title="Rift session"></iframe>
+            <div class="browser-empty" id="browser-empty">
+                <span class="material-icons">language</span>
+                <p>Type a destination to start a Rift session.</p>
+            </div>
+        </div>
+
+        <div class="browser-feedback">
+            <p id="sj-error" aria-live="polite"></p>
+            <pre id="sj-error-code"></pre>
+        </div>
         <section class="browser-shell" aria-label="Rift browser">
             <form id="browser-form" class="browser-toolbar" autocomplete="off">
                 <button type="button" id="browser-back" class="browser-icon-btn" aria-label="Go back">
@@ -45,7 +96,7 @@
             ></iframe>
         </section>
     </div>
-    
+
     <nav class="bottom-nav">
         <button class="nav-button" onclick="location.href='/'">
             <span class="material-icons">home</span>
@@ -62,14 +113,33 @@
         <button class="nav-button" onclick="location.href='/settings'">
             <span class="material-icons">settings</span>
         </button>
+        <button class="nav-button" onclick="location.href='/credits'">
+            <span class="material-icons">handshake</span>
+        </button>
+        <button class="nav-button" onclick="location.href='/social-media-&-partners'">
+            <span class="material-icons">connect_without_contact</span>
+        </button>
     </nav>
-    
+
+    <script>
+        const savedPosition = localStorage.getItem('rift__nav-position') || 'bottom';
+        document.body.classList.add('nav-pos-' + savedPosition);
+    </script>
+
     <script src="./global/js/global.js"></script>
     <script src="/components/cloaker.js"></script>
     <script src="/components/overlay.js"></script>
     <script src="/components/games.js"></script>
     <script src="/components/components.js"></script>
     <script src="/components/404.js"></script>
+
+    <script src="/scramjet/scramjet.codecs.js" defer></script>
+    <script src="/scramjet/scramjet.config.js" defer></script>
+    <script src="/scramjet/scramjet.bundle.js" defer></script>
+    <script src="/baremux/index.js" defer></script>
+    <script src="/register-sw.js" defer></script>
+    <script src="/search.js" defer></script>
+    <script src="/index.js" defer></script>
     <script>
         (() => {
             const form = document.getElementById('browser-form');

@@ -3,15 +3,75 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Rift Proxy</title>
+    <title>Rift Apps</title>
     <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
     <link rel="stylesheet" href="./global/css/global.css">
 </head>
-<body>
+<body class="apps-page">
     <div class="container">
         <header>
-            <h1>Rift</h1>
+            <h1>rift</h1>
+            <p class="page-subtitle">launch a rift session with one tap</p>
         </header>
+
+        <div class="apps-grid">
+            <a href="/browser?url=https://chat.openai.com" class="app-card">
+                <span class="material-icons">smart_toy</span>
+                <div class="app-meta">
+                    <span class="label">chatgpt</span>
+                    <span class="hint">ai chat</span>
+                </div>
+            </a>
+            <a href="/browser?url=https://www.youtube.com" class="app-card">
+                <span class="material-icons">ondemand_video</span>
+                <div class="app-meta">
+                    <span class="label">youtube</span>
+                    <span class="hint">video</span>
+                </div>
+            </a>
+            <a href="/browser?url=https://www.google.com" class="app-card">
+                <span class="material-icons">travel_explore</span>
+                <div class="app-meta">
+                    <span class="label">google</span>
+                    <span class="hint">search</span>
+                </div>
+            </a>
+            <a href="/browser?url=https://www.instagram.com" class="app-card">
+                <span class="material-icons">photo_camera</span>
+                <div class="app-meta">
+                    <span class="label">instagram</span>
+                    <span class="hint">social</span>
+                </div>
+            </a>
+            <a href="/browser?url=https://www.twitter.com" class="app-card">
+                <span class="material-icons">chat_bubble_outline</span>
+                <div class="app-meta">
+                    <span class="label">twitter</span>
+                    <span class="hint">social</span>
+                </div>
+            </a>
+            <a href="/browser?url=https://www.reddit.com" class="app-card">
+                <span class="material-icons">forum</span>
+                <div class="app-meta">
+                    <span class="label">reddit</span>
+                    <span class="hint">threads</span>
+                </div>
+            </a>
+            <a href="/browser?url=https://www.github.com" class="app-card">
+                <span class="material-icons">code</span>
+                <div class="app-meta">
+                    <span class="label">github</span>
+                    <span class="hint">dev</span>
+                </div>
+            </a>
+            <a href="/browser?url=https://www.netflix.com" class="app-card">
+                <span class="material-icons">movie</span>
+                <div class="app-meta">
+                    <span class="label">netflix</span>
+                    <span class="hint">stream</span>
+                </div>
+            </a>
+        </div>
     </div>
     
     <nav class="bottom-nav">
@@ -30,6 +90,13 @@
         <button class="nav-button" onclick="location.href='/settings'">
             <span class="material-icons">settings</span>
         </button>
+                </button>
+                <button class="nav-button" onclick="location.href='/credits'">
+            <span class="material-icons">handshake</span>
+        </button>
+                <button class="nav-button" onclick="location.href='/social-media-&-partners'">
+            <span class="material-icons">connect_without_contact</span>
+        </button>
     </nav>
     
     <script src="./global/js/global.js"></script>
@@ -38,5 +105,12 @@
     <script src="/components/games.js"></script>
     <script src="/components/components.js"></script>
     <script src="/components/404.js"></script>
+
+    <script>
+    // Apply saved nav position
+    const savedPosition = localStorage.getItem('rift__nav-position') || 'bottom';
+    document.body.classList.add('nav-pos-' + savedPosition);
+</script>
+
 </body>
 </html>
