@@ -38,11 +38,13 @@ function encodeTarget(input) {
     const encoder = self.__scramjet$bundle?.rewriters?.url?.encodeUrl;
     if (!encoder) return input;
 
+    const base = window.location.origin;
+
     try {
-        return encoder(input);
+        return encoder(input, base);
     } catch (err) {
         const fallback = new URL(input, window.location.origin).toString();
-        return encoder(fallback);
+        return encoder(fallback, base);
     }
 }
 
