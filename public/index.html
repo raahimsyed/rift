@@ -31,6 +31,14 @@
                 <span class="material-icons">settings</span>
                 <span class="home-card-label">settings</span>
             </a>
+            <a href="/credits" class="home-card">
+                <span class="material-icons">handshake</span>
+                <span class="home-card-label">credits</span>
+            </a>
+            <a href="/social-media-&-partners" class="home-card">
+                <span class="material-icons">connect_without_contact</span>
+                <span class="home-card-label">social media & partners</span>
+            </a>
         </div>
     </div>
     
@@ -50,7 +58,46 @@
         <button class="nav-button" onclick="location.href='/settings'">
             <span class="material-icons">settings</span>
         </button>
+        <button class="nav-button" onclick="location.href='/credits'">
+            <span class="material-icons">handshake</span>
+        </button>
+        <button class="nav-button" onclick="location.href='/social-media-&-partners'">
+            <span class="material-icons">connect_without_contact</span>
+        </button>
     </nav>
+
+    <!-- What's New Popup -->
+<div id="whats-new-popup" class="modal">
+    <div class="modal-content">
+        <h3>What's New?</h3>
+        <div style="display: flex; flex-direction: column; gap: 12px;">
+            <div style="display: flex; align-items: start; gap: 10px;">
+                <span class="material-icons" style="color: rgba(255, 255, 255, 0.7);">new_releases</span>
+                <div>
+                    <strong style="color: white; font-size: 13px;">Navigation Positioning</strong>
+                    <p style="margin: 4px 0 0; font-size: 12px; color: rgba(255, 255, 255, 0.6);">Choose where the nav bar appears - bottom, top, left, or right!</p>
+                </div>
+            </div>
+            <div style="display: flex; align-items: start; gap: 10px;">
+                <span class="material-icons" style="color: rgba(255, 255, 255, 0.7);">group</span>
+                <div>
+                    <strong style="color: white; font-size: 13px;">Social Media & Partners</strong>
+                    <p style="margin: 4px 0 0; font-size: 12px; color: rgba(255, 255, 255, 0.6);">Check out our new social media and partners page!</p>
+                </div>
+            </div>
+            <div style="display: flex; align-items: start; gap: 10px;">
+                <span class="material-icons" style="color: rgba(255, 255, 255, 0.7);">bug_report</span>
+                <div>
+                    <strong style="color: white; font-size: 13px;">Bug Fixes</strong>
+                    <p style="margin: 4px 0 0; font-size: 12px; color: rgba(255, 255, 255, 0.6);">Various improvements and bug fixes across the platform.</p>
+                </div>
+            </div>
+        </div>
+        <div class="modal-buttons" style="margin-top: 16px;">
+            <button id="whats-new-close" class="save-btn" style="flex: 1;">Got it!</button>
+        </div>
+    </div>
+</div>
     
     <script src="./global/js/global.js"></script>
     <script src="/components/cloaker.js"></script>
@@ -58,13 +105,46 @@
     <script src="/components/games.js"></script>
     <script src="/components/components.js"></script>
     <script src="/components/404.js"></script>
-    <script src="https://pl28692248.effectivegatecpm.com/09/96/f1/0996f1fd6e5014f3da662d494fbfe224.js"></script>
-<script>
-document.addEventListener("click", function() {
-    window.open("https://www.effectivegatecpm.com/f8thf8m3?key=b1a1e5da43f1e078b4eb9aa6604c8605", "_blank");
-}, { once: true });
+
+    <script>
+    // Apply saved nav position
+    const savedPosition = localStorage.getItem('rift__nav-position') || 'bottom';
+    document.body.classList.add('nav-pos-' + savedPosition);
 </script>
 
+<script>
+    // What's New popup (shows once per session)
+    document.addEventListener('DOMContentLoaded', () => {
+        const WHATS_NEW_KEY = 'rift__whats-new-seen';
+        const popup = document.getElementById('whats-new-popup');
+        const closeBtn = document.getElementById('whats-new-close');
+        
+        // Check if user has seen popup this session
+        const seenThisSession = sessionStorage.getItem(WHATS_NEW_KEY);
+        
+        if (!seenThisSession) {
+            // Show popup after a short delay
+            setTimeout(() => {
+                popup.classList.add('active');
+            }, 500);
+            
+            // Mark as seen for this session
+            sessionStorage.setItem(WHATS_NEW_KEY, 'true');
+        }
+        
+        // Close popup
+        closeBtn.addEventListener('click', () => {
+            popup.classList.remove('active');
+        });
+        
+        // Close on backdrop click
+        popup.addEventListener('click', (e) => {
+            if (e.target === popup) {
+                popup.classList.remove('active');
+            }
+        });
+    });
+</script>
 
 </body>
 </html>

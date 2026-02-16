@@ -46,6 +46,44 @@
                     <button id="launch-window">window</button>
                     <button id="launch-tab">tab</button>
                 </div>
+                <h2>navigation position</h2>
+<p class="settings-hint">choose where the navigation bar appears on your screen.</p>
+<div class="settings-group">
+    <div class="settings-option">
+        <div class="settings-option-header">
+            <span class="material-icons">south</span>
+            <strong>bottom</strong>
+        </div>
+        <p class="settings-option-desc">default position at the bottom center of the screen.</p>
+    </div>
+    <div class="settings-option">
+        <div class="settings-option-header">
+            <span class="material-icons">north</span>
+            <strong>top</strong>
+        </div>
+        <p class="settings-option-desc">navigation bar at the top center of the screen.</p>
+    </div>
+    <div class="settings-option">
+        <div class="settings-option-header">
+            <span class="material-icons">west</span>
+            <strong>left</strong>
+        </div>
+        <p class="settings-option-desc">vertical navigation bar on the left side of the screen.</p>
+    </div>
+    <div class="settings-option">
+        <div class="settings-option-header">
+            <span class="material-icons">east</span>
+            <strong>right</strong>
+        </div>
+        <p class="settings-option-desc">vertical navigation bar on the right side of the screen.</p>
+    </div>
+    <div class="switcher" id="nav-position-switcher">
+        <button id="nav-bottom">bottom</button>
+        <button id="nav-top">top</button>
+        <button id="nav-left">left</button>
+        <button id="nav-right">right</button>
+    </div>
+</div>
             </div>
         </div>
     </div>
@@ -65,6 +103,12 @@
         </button>
         <button class="nav-button active" onclick="location.href='/settings'">
             <span class="material-icons">settings</span>
+        </button>
+        <button class="nav-button" onclick="location.href='/credits'">
+            <span class="material-icons">handshake</span>
+        </button>
+                <button class="nav-button" onclick="location.href='/social-media-&-partners'">
+            <span class="material-icons">connect_without_contact</span>
         </button>
     </nav>
 
@@ -120,7 +164,36 @@
                 });
             });
         });
+
+        // Navigation position switcher
+const NAV_POS_KEY = 'rift__nav-position';
+let navPosition = localStorage.getItem(NAV_POS_KEY) || 'bottom';
+
+const syncNavPosition = () => {
+    document.querySelectorAll('#nav-position-switcher button').forEach(btn => {
+        btn.classList.toggle('active', btn.id === 'nav-' + navPosition);
+    });
+    // Apply position class to body
+    document.body.className = document.body.className.replace(/nav-pos-\w+/g, '');
+    document.body.classList.add('nav-pos-' + navPosition);
+};
+syncNavPosition();
+
+document.querySelectorAll('#nav-position-switcher button').forEach(btn => {
+    btn.addEventListener('click', () => {
+        navPosition = btn.id.replace('nav-', '');
+        localStorage.setItem(NAV_POS_KEY, navPosition);
+        syncNavPosition();
+        RiftOverlay.toast('nav position: ' + navPosition);
+    });
+});
     </script>
-        <script src="https://pl28692248.effectivegatecpm.com/09/96/f1/0996f1fd6e5014f3da662d494fbfe224.js"></script>
+
+    <script>
+    // Apply saved nav position
+    const savedPosition = localStorage.getItem('rift__nav-position') || 'bottom';
+    document.body.classList.add('nav-pos-' + savedPosition);
+</script>
+
 </body>
 </html>
