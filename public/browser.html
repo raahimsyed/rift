@@ -62,8 +62,19 @@
         <button class="nav-button" onclick="location.href='/settings'">
             <span class="material-icons">settings</span>
         </button>
+        <button class="nav-button" onclick="location.href='/credits'">
+            <span class="material-icons">handshake</span>
+        </button>
+        <button class="nav-button" onclick="location.href='/social-media-&-partners'">
+            <span class="material-icons">connect_without_contact</span>
+        </button>
     </nav>
     
+    <script>
+        const savedPosition = localStorage.getItem('rift__nav-position') || 'bottom';
+        document.body.classList.add('nav-pos-' + savedPosition);
+    </script>
+
     <script src="./global/js/global.js"></script>
     <script src="/components/cloaker.js"></script>
     <script src="/components/overlay.js"></script>
