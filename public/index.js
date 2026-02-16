@@ -7,6 +7,8 @@ const error = document.getElementById("sj-error");
 const errorCode = document.getElementById("sj-error-code");
 const frame = document.getElementById("sj-frame");
 
+let proxyMode = "scramjet";
+
 // BareMux wiring for network transport
 const connection = new BareMux.BareMuxConnection("/baremux/worker.js");
 
@@ -20,6 +22,39 @@ async function ensureTransport() {
     await connection.setTransport("/libcurl/index.mjs", [
         { websocket: wispUrl },
     ]);
+}
+
+async function testWispSocket(timeoutMs = 1500) {
+    const wispUrl =
+        (location.protocol === "https:" ? "wss" : "ws") +
+        "://" +
+        location.host +
+        "/wisp/";
+
+    return await new Promise((resolve) => {
+        let settled = false;
+        const socket = new WebSocket(wispUrl);
+
+        const finish = (ok) => {
+            if (settled) return;
+            settled = true;
+            clearTimeout(timer);
+            try {
+                socket.close();
+            } catch {
+                // no-op
+            }
+            resolve(ok);
+        };
+
+        const timer = setTimeout(() => finish(false), timeoutMs);
+
+        socket.addEventListener("open", () => finish(true), { once: true });
+        socket.addEventListener("error", () => finish(false), { once: true });
+        socket.addEventListener("close", () => {
+            if (!settled) finish(false);
+        }, { once: true });
+    });
 }
 
 function normalizeTarget(raw) {
@@ -51,8 +86,13 @@ function loadIntoFrame(raw) {
         throw new TypeError("Invalid URL");
     }
 
-    const encoded = encodeTarget(target);
-    frame.src = encoded;
+    if (proxyMode === "proxy") {
+        frame.src = `/proxy?url=${encodeURIComponent(target)}`;
+    } else {
+        const encoded = encodeTarget(target);
+        frame.src = encoded;
+    }
+
     frame.dataset.url = target;
     frame.classList.add("is-visible");
 }
@@ -70,12 +110,29 @@ form.addEventListener("submit", async (event) => {
     if (!raw) return;
 
     try {
-        await registerSW();
-        await ensureTransport();
+        if (proxyMode === "scramjet") {
+            await registerSW();
+            await ensureTransport();
+
+            const wispAvailable = await testWispSocket();
+            if (!wispAvailable) {
+                proxyMode = "proxy";
+                showError(
+                    "Scramjet transport is unavailable here. Using compatibility proxy mode.",
+                    "Wisp websocket was not reachable on this deployment."
+                );
+            }
+        }
+
         loadIntoFrame(raw);
     } catch (err) {
+        proxyMode = "proxy";
         console.error("Rift proxy failed to start", err);
-        showError("Rift could not start the proxy.", err?.toString());
+        showError(
+            "Scramjet failed to start. Using compatibility proxy mode.",
+            err?.toString()
+        );
+        loadIntoFrame(raw);
     }
 });
 
