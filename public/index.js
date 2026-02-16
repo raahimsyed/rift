@@ -11,18 +11,15 @@ const frame = document.getElementById("sj-frame");
 const connection = new BareMux.BareMuxConnection("/baremux/worker.js");
 
 async function ensureTransport() {
-    const transport = await connection.getTransport();
     const wispUrl =
         (location.protocol === "https:" ? "wss" : "ws") +
         "://" +
         location.host +
         "/wisp/";
 
-    if (transport !== "/libcurl/index.mjs") {
-        await connection.setTransport("/libcurl/index.mjs", [
-            { websocket: wispUrl },
-        ]);
-    }
+    await connection.setTransport("/libcurl/index.mjs", [
+        { websocket: wispUrl },
+    ]);
 }
 
 function normalizeTarget(raw) {
