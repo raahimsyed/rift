@@ -54,6 +54,14 @@ header h1 {
   font-family: "Run", Arial, sans-serif;
 }
 
+.page-subtitle {
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 13px;
+  margin-top: 8px;
+  text-transform: lowercase;
+  letter-spacing: 0.08em;
+}
+
 .bottom-nav {
   position: fixed;
   bottom: 30px;
@@ -809,7 +817,7 @@ body.games-page {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 14px;
-  max-width: 360px;
+  max-width: 500px;
   margin: 0 auto;
 }
 
@@ -993,4 +1001,366 @@ body.settings-page {
 
 .settings-group .switcher {
   margin-top: 8px;
+}
+
+/* ── Apps page ── */
+body.apps-page {
+  flex-direction: column;
+  overflow-y: auto;
+  align-items: center;
+  justify-content: flex-start;
+  padding-top: 40px;
+  padding-bottom: 120px;
+}
+
+.apps-grid {
+  width: 100%;
+  max-width: 780px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 14px;
+}
+
+.app-card {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  padding: 16px 14px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 14px;
+  text-decoration: none;
+  color: white;
+  transition: all 0.25s ease;
+  backdrop-filter: blur(6px);
+}
+
+.app-card:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.3);
+  transform: translateY(-2px);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+}
+
+.app-card .material-icons {
+  font-size: 28px;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.app-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.app-meta .label {
+  font-family: "Run", Arial, sans-serif;
+  font-size: 13px;
+  letter-spacing: 0.08em;
+  text-transform: lowercase;
+}
+
+.app-meta .hint {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.55);
+  letter-spacing: 0.05em;
+}
+
+/* ── Credits page ── */
+body.credits-page {
+  flex-direction: column;
+  overflow-y: auto;
+  align-items: center;
+  justify-content: flex-start;
+  padding-top: 40px;
+  padding-bottom: 120px;
+}
+
+.credits-grid {
+  width: 100%;
+  max-width: 780px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 14px;
+}
+
+.credit-card {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  padding: 16px 14px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 14px;
+  color: white;
+  transition: all 0.25s ease;
+  backdrop-filter: blur(6px);
+}
+
+.credit-card:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.3);
+  transform: translateY(-2px);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+}
+
+.credit-card .material-icons {
+  font-size: 28px;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.credit-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.credit-meta .label {
+  font-family: "Run", Arial, sans-serif;
+  font-size: 13px;
+  letter-spacing: 0.08em;
+  text-transform: lowercase;
+  color: rgba(255, 255, 255, 0.95);
+}
+
+.credit-meta .hint {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.55);
+  letter-spacing: 0.05em;
+}
+
+/* ── Navigation Position Variants ── */
+/* Top position */
+body.nav-pos-top .bottom-nav {
+    top: 30px;
+    bottom: auto;
+}
+
+body.nav-pos-top .nav-toggle {
+    top: 10px;
+    bottom: auto;
+}
+
+body.nav-pos-top .nav-toggle.nav-is-hidden {
+    top: 16px;
+}
+
+/* Left position */
+body.nav-pos-left .bottom-nav {
+    left: 30px;
+    top: 50%;
+    bottom: auto;
+    transform: translateY(-50%);
+    flex-direction: column;
+    padding: 20px 15px;
+}
+
+body.nav-pos-left .bottom-nav.hidden {
+    transform: translateX(-150%) translateY(-50%);
+}
+
+body.nav-pos-left .nav-toggle {
+    left: 10px;
+    top: 50%;
+    bottom: auto;
+    transform: translateY(-50%);
+    width: 5px;
+    height: 36px;
+}
+
+body.nav-pos-left .nav-toggle:hover {
+    width: 5px;
+    height: 48px;
+}
+
+body.nav-pos-left .nav-toggle.nav-is-hidden {
+    left: 16px;
+}
+
+/* Right position */
+body.nav-pos-right .bottom-nav {
+    left: auto;
+    right: 30px;
+    top: 50%;
+    bottom: auto;
+    transform: translateY(-50%);
+    flex-direction: column;
+    padding: 20px 15px;
+}
+
+body.nav-pos-right .bottom-nav.hidden {
+    transform: translateX(150%) translateY(-50%);
+}
+
+body.nav-pos-right .nav-toggle {
+    left: auto;
+    right: 10px;
+    top: 50%;
+    bottom: auto;
+    transform: translateY(-50%);
+    width: 5px;
+    height: 36px;
+}
+
+body.nav-pos-right .nav-toggle:hover {
+    width: 5px;
+    height: 48px;
+}
+
+body.nav-pos-right .nav-toggle.nav-is-hidden {
+    right: 16px;
+}
+
+/* Restore button adjustments */
+body.nav-pos-top #restore-btn,
+body.nav-pos-top #viewer-restore {
+    top: 100px;
+    bottom: auto;
+}
+
+body.nav-pos-left #restore-btn,
+body.nav-pos-left #viewer-restore {
+    left: 120px;
+    transform: translateX(0);
+}
+
+body.nav-pos-right #restore-btn,
+body.nav-pos-right #viewer-restore {
+    left: auto;
+    right: 120px;
+    transform: translateX(0);
+}
+
+/* ── Browser page ── */
+body.browser-page {
+  flex-direction: column;
+  overflow-y: auto;
+  align-items: center;
+  justify-content: flex-start;
+  padding-top: 40px;
+  padding-bottom: 120px;
+}
+
+.container.browser-container {
+  width: min(1200px, 95vw);
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.container.browser-container > header {
+  width: 100%;
+}
+
+.browser-shell {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px;
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.04);
+  backdrop-filter: blur(8px);
+  box-shadow: 0 24px 50px rgba(0, 0, 0, 0.35);
+}
+
+.browser-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+
+.browser-icon-btn,
+.browser-go-btn {
+  height: 38px;
+  min-width: 38px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.07);
+  color: rgba(255, 255, 255, 0.9);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: "Run", Arial, sans-serif;
+  transition: all 0.2s ease;
+}
+
+.browser-icon-btn:hover,
+.browser-go-btn:hover {
+  background: rgba(255, 255, 255, 0.14);
+  border-color: rgba(255, 255, 255, 0.35);
+}
+
+.browser-icon-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+#browser-input {
+  flex: 1;
+  height: 38px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(0, 0, 0, 0.35);
+  color: #fff;
+  padding: 0 12px;
+  font-family: "Run", Arial, sans-serif;
+  font-size: 13px;
+  min-width: 120px;
+}
+
+#browser-input::placeholder {
+  color: rgba(255, 255, 255, 0.45);
+}
+
+#browser-input:focus {
+  outline: none;
+  border-color: rgba(255, 255, 255, 0.45);
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.08);
+}
+
+.browser-status {
+  min-height: 20px;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.58);
+  padding: 0 2px;
+  letter-spacing: 0.05em;
+  text-transform: lowercase;
+}
+
+#browser-frame {
+  width: 100%;
+  min-height: 62vh;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(0, 0, 0, 0.55);
+}
+
+@media (max-width: 720px) {
+  .browser-toolbar {
+    flex-wrap: wrap;
+  }
+
+  .browser-icon-btn,
+  .browser-go-btn,
+  #browser-input {
+    height: 36px;
+  }
+
+  #browser-input {
+    order: 2;
+    width: 100%;
+  }
+
+  .browser-go-btn {
+    order: 3;
+  }
+
+  #browser-frame {
+    min-height: 56vh;
+  }
 }
