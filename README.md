@@ -30,3 +30,15 @@ http://localhost:3000
 ## Usage
 
 Enter a URL or search term in the input field and click "Go" or press Enter.
+
+## Vercel Production Domain Checklist
+
+If a preview URL (like `*-git-branch-user.vercel.app`) works but the main domain (`riftedproxies.vercel.app`) does not, verify:
+
+1. **Production Branch** is set to the branch with the latest fixes (Project → Settings → Git).
+2. The latest commit is actually deployed as a **Production** deployment (Project → Deployments).
+3. `riftedproxies.vercel.app` is attached to this same Vercel project (Project → Settings → Domains).
+4. If needed, use **Promote to Production** on a working preview deployment.
+
+This repository uses a catch-all route in `vercel.json` to send all requests to `server/server.js`, so routing logic is shared between preview and production.
+

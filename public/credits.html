@@ -1,0 +1,80 @@
+<!doctype HTML>
+<html>
+    <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rift Apps</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+    <link rel="stylesheet" href="./global/css/global.css">
+    </head>
+    <body>
+        <div class="container">
+            <header>
+                <h1>credits</h1>
+                <p class="page-subtitle">a big thank you to everyone who contributed to this project!</p>
+            </header>
+
+            <div class="credits-grid">
+                <div class="credit-card">
+                    <span class="material-icons">code</span>
+                    <div class="credit-meta">
+                        <span class="label">Raahim</span>
+                        <span class="hint">lead developer, designer, and maintainer</span>
+                    </div>
+                </div>
+                <div class="credit-card">
+                    <span class="material-icons">code</span>
+                    <div class="credit-meta">
+                        <span class="label">Elliot</span>
+                        <span class="hint">contributor - various bug fixes and improvements</span>
+                    </div>
+                </div>
+                <div class="credit-card">
+                    <span class="material-icons">code</span>
+                    <div class="credit-meta">
+                        <span class="label">Mason</span>
+                        <span class="hint">contributor - implemented game vault search functionality</span>
+                    </div>
+                </div>
+                <div class="credit-card">
+                    <span class="material-icons">code</span>
+                    <div class="credit-meta">
+                        <span class="label">Alex</span>
+                        <span class="hint">contributor - various bug fixes and improvements</span>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    <nav class="bottom-nav">
+        <button class="nav-button" onclick="location.href='/'">
+            <span class="material-icons">home</span>
+        </button>
+        <button class="nav-button" onclick="location.href='/games'">
+            <span class="material-icons">sports_esports</span>
+        </button>
+        <button class="nav-button" onclick="location.href='/apps'">
+            <span class="material-icons">apps</span>
+        </button>
+        <button class="nav-button" onclick="location.href='/browser'">
+            <span class="material-icons">language</span>
+        </button>
+        <button class="nav-button" onclick="location.href='/settings'">
+            <span class="material-icons">settings</span>
+        </button>
+        <button class="nav-button active" onclick="location.href='/credits'">
+            <span class="material-icons">handshake</span>
+        </button>
+                <button class="nav-button" onclick="location.href='/social-media-&-partners'">
+            <span class="material-icons">connect_without_contact</span>
+        </button>
+    </nav>
+
+    <script>
+    // Apply saved nav position
+    const savedPosition = localStorage.getItem('rift__nav-position') || 'bottom';
+    document.body.classList.add('nav-pos-' + savedPosition);
+</script>
+
+    </body>
+</html>

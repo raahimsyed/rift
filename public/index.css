@@ -1,0 +1,219 @@
+body.browser-page {
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    padding-top: 32px;
+    padding-bottom: 120px;
+    overflow: hidden;
+    background: radial-gradient(circle at 20% 20%, rgba(255, 255, 255, 0.04), transparent 35%),
+        radial-gradient(circle at 80% 10%, rgba(255, 255, 255, 0.03), transparent 30%),
+        #000000;
+}
+
+.page-subtitle {
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 13px;
+    margin-top: 8px;
+    text-transform: lowercase;
+    letter-spacing: 0.08em;
+}
+
+.tab-rail {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 14px;
+}
+
+.tab {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 14px;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    background: rgba(255, 255, 255, 0.06);
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 12px;
+    text-transform: lowercase;
+    letter-spacing: 0.08em;
+}
+
+.tab.ghost {
+    border-style: dashed;
+    color: rgba(255, 255, 255, 0.45);
+    background: rgba(255, 255, 255, 0.03);
+}
+
+.address-bar {
+    width: 100%;
+    max-width: 960px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: 16px;
+    padding: 12px 16px;
+    backdrop-filter: blur(12px);
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
+}
+
+.nav-cluster {
+    display: flex;
+    gap: 8px;
+}
+
+.nav-btn {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    color: rgba(255, 255, 255, 0.85);
+    border-radius: 12px;
+    padding: 10px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.nav-btn:hover {
+    background: rgba(255, 255, 255, 0.12);
+    color: white;
+    transform: translateY(-1px);
+}
+
+.nav-btn .material-icons {
+    font-size: 20px;
+}
+
+.address-form {
+    flex: 1;
+}
+
+#sj-address {
+    width: 100%;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 12px;
+    color: white;
+    padding: 12px 14px;
+    font-size: 14px;
+    outline: none;
+    font-family: "Run", Arial, sans-serif;
+    transition: all 0.25s ease;
+}
+
+#sj-address::placeholder {
+    color: rgba(255, 255, 255, 0.5);
+}
+
+#sj-address:focus {
+    border-color: rgba(255, 255, 255, 0.4);
+    box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.05);
+}
+
+.browser-frame {
+    position: relative;
+    width: 100%;
+    max-width: 1200px;
+    margin-top: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 16px;
+    overflow: hidden;
+    min-height: 60vh;
+    background: rgba(255, 255, 255, 0.03);
+    box-shadow: 0 30px 80px rgba(0, 0, 0, 0.45);
+}
+
+#sj-frame {
+    width: 100%;
+    height: 70vh;
+    border: none;
+    display: none;
+    background: #0b0b0b;
+}
+
+#sj-frame.is-visible {
+    display: block;
+}
+
+#sj-frame.is-visible ~ .browser-empty {
+    display: none;
+}
+
+.browser-empty {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    color: rgba(255, 255, 255, 0.7);
+    text-align: center;
+}
+
+.browser-empty .material-icons {
+    font-size: 36px;
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.browser-feedback {
+    width: 100%;
+    max-width: 960px;
+    margin-top: 12px;
+}
+
+#sj-error {
+    color: #ff7b7b;
+    font-size: 13px;
+    min-height: 18px;
+}
+
+#sj-error-code {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 10px;
+    padding: 10px;
+    color: #8ab4ff;
+    font-family: "Courier New", Courier, monospace;
+    font-size: 12px;
+    white-space: pre-wrap;
+    overflow-x: auto;
+}
+
+/* 404 page */
+body.error-page {
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    background: #000000;
+}
+
+.error-card {
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    padding: 24px;
+    border-radius: 16px;
+    text-align: center;
+    color: white;
+    max-width: 420px;
+}
+
+.error-card h1 {
+    margin-bottom: 10px;
+    font-size: 24px;
+    letter-spacing: 0.08em;
+}
+
+.error-card p {
+    color: rgba(255, 255, 255, 0.7);
+    margin-bottom: 12px;
+}
+
+.error-card a {
+    color: rgba(255, 255, 255, 0.9);
+    text-decoration: none;
+    font-weight: 500;
+}

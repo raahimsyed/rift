@@ -6,6 +6,10 @@
       "use": "@vercel/node"
     }
   ],
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "/server/server.js"
   "rewrites": [
     {
       "source": "/proxy",
