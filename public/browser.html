@@ -10,6 +10,7 @@
 </head>
 <body class="browser-page">
     <div class="container">
+    <div class="container browser-container">
         <header>
             <h1>rift</h1>
             <p class="page-subtitle">private browsing powered by scramjet</p>
@@ -63,6 +64,39 @@
             <p id="sj-error" aria-live="polite"></p>
             <pre id="sj-error-code"></pre>
         </div>
+
+        <section class="browser-shell" aria-label="Rift browser">
+            <form id="browser-form" class="browser-toolbar" autocomplete="off">
+                <button type="button" id="browser-back" class="browser-icon-btn" aria-label="Go back">
+                    <span class="material-icons">arrow_back</span>
+                </button>
+                <button type="button" id="browser-forward" class="browser-icon-btn" aria-label="Go forward">
+                    <span class="material-icons">arrow_forward</span>
+                </button>
+                <button type="button" id="browser-reload" class="browser-icon-btn" aria-label="Reload page">
+                    <span class="material-icons">refresh</span>
+                </button>
+                <input
+                    id="browser-input"
+                    type="text"
+                    name="url"
+                    placeholder="Search or enter URL"
+                    aria-label="Search or enter URL"
+                >
+                <button type="submit" id="browser-go" class="browser-go-btn">Go</button>
+            </form>
+
+            <div class="browser-status" id="browser-status" aria-live="polite"></div>
+
+            <iframe
+                id="browser-frame"
+                title="Rift Browser Viewer"
+                src="/proxy?url=https%3A%2F%2Fexample.com"
+                loading="eager"
+                referrerpolicy="no-referrer"
+            ></iframe>
+        </section>
+
     </div>
 
     <nav class="bottom-nav">
@@ -108,5 +142,96 @@
     <script src="/register-sw.js" defer></script>
     <script src="/search.js" defer></script>
     <script src="/index.js" defer></script>
+
+    <script>
+        (() => {
+            const form = document.getElementById('browser-form');
+            const input = document.getElementById('browser-input');
+            const frame = document.getElementById('browser-frame');
+            const status = document.getElementById('browser-status');
+            const back = document.getElementById('browser-back');
+            const forward = document.getElementById('browser-forward');
+            const reload = document.getElementById('browser-reload');
+
+            if (!form || !input || !frame || !status || !back || !forward || !reload) return;
+
+            const history = [];
+            let historyIndex = -1;
+
+            function toTarget(value) {
+                const trimmed = value.trim();
+                if (!trimmed) return null;
+
+                const hasProtocol = /^https?:\/\//i.test(trimmed);
+                const looksLikeDomain = /\.[a-z]{2,}(?:\/|$)/i.test(trimmed);
+                const url = hasProtocol
+                    ? trimmed
+                    : looksLikeDomain
+                        ? `https://${trimmed}`
+                        : `https://duckduckgo.com/?q=${encodeURIComponent(trimmed)}`;
+
+                return url;
+            }
+
+            function updateButtons() {
+                back.disabled = historyIndex <= 0;
+                forward.disabled = historyIndex >= history.length - 1;
+            }
+
+            function setStatus(message) {
+                status.textContent = message;
+            }
+
+            function loadTarget(targetUrl, pushHistory = true) {
+                if (!targetUrl) {
+                    setStatus('Enter a URL or search term to browse.');
+                    return;
+                }
+
+                const proxyUrl = `/proxy?url=${encodeURIComponent(targetUrl)}`;
+                frame.src = proxyUrl;
+                input.value = targetUrl;
+                setStatus(`Loading ${targetUrl}`);
+
+                if (pushHistory) {
+                    history.splice(historyIndex + 1);
+                    history.push(targetUrl);
+                    historyIndex = history.length - 1;
+                }
+
+                updateButtons();
+            }
+
+            form.addEventListener('submit', (event) => {
+                event.preventDefault();
+                const target = toTarget(input.value);
+                loadTarget(target, true);
+            });
+
+            back.addEventListener('click', () => {
+                if (historyIndex <= 0) return;
+                historyIndex -= 1;
+                loadTarget(history[historyIndex], false);
+            });
+
+            forward.addEventListener('click', () => {
+                if (historyIndex >= history.length - 1) return;
+                historyIndex += 1;
+                loadTarget(history[historyIndex], false);
+            });
+
+            reload.addEventListener('click', () => {
+                if (historyIndex < 0) return;
+                loadTarget(history[historyIndex], false);
+            });
+
+            frame.addEventListener('load', () => {
+                setStatus(`Showing ${input.value || 'page'}`);
+            });
+
+            loadTarget('https://example.com', true);
+        })();
+    </script>
+
 </body>
 </html>
