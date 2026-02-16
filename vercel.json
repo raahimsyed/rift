@@ -4,6 +4,8 @@
     {
       "source": "/(.*)",
       "destination": "/api/index"
+ codex/greet-user-9d7jnw
+
   "builds": [
     {
       "src": "server/server.js",
@@ -46,6 +48,7 @@
     {
       "source": "/",
       "destination": "/public/index.html"
+
     }
   ]
 }

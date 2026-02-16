@@ -40,5 +40,31 @@ If a preview URL (like `*-git-branch-user.vercel.app`) works but the main domain
 3. `riftedproxies.vercel.app` is attached to this same Vercel project (Project → Settings → Domains).
 4. If needed, use **Promote to Production** on a working preview deployment.
 
+
+This repository uses a catch-all rewrite in `vercel.json` to send all requests to `api/index` (which exports the Express app), so routing logic is shared between preview and production.
+
+### Known-good `vercel.json`
+
+Use this exact shape and do not mix legacy `builds/routes` with modern rewrites:
+
+You can also validate this quickly with:
+
+```bash
+npm run validate:vercel
+```
+
+```json
+{
+  "version": 2,
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/api/index"
+    }
+  ]
+}
+```
+=======
 This repository uses a catch-all route in `vercel.json` to send all requests to `server/server.js`, so routing logic is shared between preview and production.
+
 

@@ -61,6 +61,7 @@ app.get('/proxy', async (req, res) => {
   } catch (error) {
     res.status(500).send(`Error fetching the requested URL: ${error.message}`);
   }
+
 });
 
 app.get('*', (req, res, next) => {
@@ -78,6 +79,26 @@ app.get('*', (req, res, next) => {
 app.use((req, res) => {
   res.status(404).sendFile(path.join(rootDir, 'public', '404.html'));
 });
+
+
+});
+
+app.get('*', (req, res, next) => {
+  if (req.path === '/' || req.path.includes('.') || req.path.startsWith('/wisp/')) {
+    return next();
+  }
+
+  const cleanPath = req.path.replace(/\/+$/, '');
+  const filePath = path.join(rootDir, 'public', `${cleanPath}.html`);
+  res.sendFile(filePath, (err) => {
+    if (err) next();
+  });
+});
+
+app.use((req, res) => {
+  res.status(404).sendFile(path.join(rootDir, 'public', '404.html'));
+});
+
 
 let server;
 
@@ -110,6 +131,8 @@ if (require.main === module) {
 
 module.exports = app;
 module.exports.startServer = startServer;
+ codex/greet-user-9d7jnw
+
 if (require.main === module) {
     app.listen(PORT, () => {
         console.log(`Rift running on http://localhost:${PORT}`);
@@ -117,3 +140,4 @@ if (require.main === module) {
 }
 
 module.exports = app;
+>

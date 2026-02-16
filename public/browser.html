@@ -64,6 +64,7 @@
             <p id="sj-error" aria-live="polite"></p>
             <pre id="sj-error-code"></pre>
         </div>
+
         <section class="browser-shell" aria-label="Rift browser">
             <form id="browser-form" class="browser-toolbar" autocomplete="off">
                 <button type="button" id="browser-back" class="browser-icon-btn" aria-label="Go back">
@@ -95,6 +96,7 @@
                 referrerpolicy="no-referrer"
             ></iframe>
         </section>
+
     </div>
 
     <nav class="bottom-nav">
@@ -140,6 +142,7 @@
     <script src="/register-sw.js" defer></script>
     <script src="/search.js" defer></script>
     <script src="/index.js" defer></script>
+
     <script>
         (() => {
             const form = document.getElementById('browser-form');
@@ -229,5 +232,6 @@
             loadTarget('https://example.com', true);
         })();
     </script>
+
 </body>
 </html>
