@@ -67,6 +67,7 @@ const RiftVault = {
           launchMode = localStorage.getItem(VAULT_CONFIG.keys.launchMode) || VAULT_CONFIG.defaults.mode;
           this.applyDisguise();
           this.bind();
+          this.syncSettingsSnapshot();
 
           try {
                await this.fetchCatalog();
@@ -74,6 +75,15 @@ const RiftVault = {
           } catch (err) {
                this.toast("failed to load games. please refresh.");
                console.error(err);
+          }
+     },
+
+     async syncSettingsSnapshot() {
+          if (!window.RiftAuth?.saveLocalSettings) return;
+          try {
+               await window.RiftAuth.saveLocalSettings();
+          } catch {
+               // user not logged in or save unavailable; ignore silently
           }
      },
 
@@ -459,6 +469,7 @@ const RiftVault = {
           if (!game) return this.toast("game not found");
 
           try {
+               this.trackLaunch(game);
                const title = localStorage.getItem(VAULT_CONFIG.keys.disguiseTitle) || VAULT_CONFIG.defaults.title;
                const favicon = localStorage.getItem(VAULT_CONFIG.keys.disguiseFavicon) || VAULT_CONFIG.defaults.favicon;
                const gameUrl = typeof game.url === "string" ? game.url : "";
@@ -523,6 +534,22 @@ const RiftVault = {
                     }
                }
                this.toast("failed to load game");
+          }
+     },
+
+     async trackLaunch(game) {
+          if (!game || !window.RiftAuth?.saveGameProgress) return;
+          const payload = {
+               launches: 1,
+               lastPlayedAt: Date.now(),
+               name: game.name || "",
+               source: game.source || "",
+               url: game.url || "",
+          };
+          try {
+               await window.RiftAuth.saveGameProgress(game.id, payload);
+          } catch {
+               // ignore when user is logged out or API unavailable
           }
      },
 

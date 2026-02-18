@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rift Account</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+    <link rel="stylesheet" href="./global/css/global.css">
+    <style>
+        .account-shell {
+            width: min(92vw, 560px);
+            margin: 0 auto;
+            display: grid;
+            gap: 14px;
+        }
+        .account-card {
+            border: 1px solid rgba(255, 255, 255, 0.14);
+            border-radius: 16px;
+            background: rgba(255, 255, 255, 0.04);
+            padding: 16px;
+        }
+        .account-card h3 {
+            color: #fff;
+            font-size: 16px;
+            margin-bottom: 10px;
+            text-transform: lowercase;
+            letter-spacing: 0.08em;
+        }
+        .account-row {
+            display: grid;
+            gap: 8px;
+        }
+        .account-input {
+            width: 100%;
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            color: white;
+            border-radius: 10px;
+            padding: 10px 12px;
+            font-family: "Run", Arial, sans-serif;
+        }
+        .account-actions {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-top: 8px;
+        }
+        .account-btn {
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            background: rgba(255, 255, 255, 0.08);
+            color: white;
+            border-radius: 10px;
+            padding: 10px 12px;
+            cursor: pointer;
+            font-family: "Run", Arial, sans-serif;
+            font-size: 12px;
+            text-transform: lowercase;
+        }
+        .account-status {
+            color: rgba(255, 255, 255, 0.72);
+            font-size: 12px;
+            line-height: 1.5;
+            word-break: break-word;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>rift account</h1>
+            <p class="page-subtitle">login/signup with cloud save</p>
+        </header>
+        <section class="account-shell">
+            <article class="account-card">
+                <h3>auth</h3>
+                <div class="account-row">
+                    <input id="username" class="account-input" placeholder="username (a-z, 0-9, _)" maxlength="24">
+                    <input id="password" class="account-input" type="password" placeholder="password (8+ chars)" maxlength="128">
+                </div>
+                <div class="account-actions">
+                    <button id="signupBtn" class="account-btn">sign up</button>
+                    <button id="loginBtn" class="account-btn">log in</button>
+                    <button id="logoutBtn" class="account-btn">log out</button>
+                </div>
+            </article>
+            <article class="account-card">
+                <h3>cloud save status</h3>
+                <div id="status" class="account-status">checking session...</div>
+                <div class="account-actions">
+                    <button id="refreshBtn" class="account-btn">refresh</button>
+                    <button id="pushSettingsBtn" class="account-btn">push local settings</button>
+                </div>
+            </article>
+        </section>
+    </div>
+
+    <nav class="bottom-nav">
+        <button class="nav-button" onclick="location.href='/'"><span class="material-icons">home</span></button>
+        <button class="nav-button" onclick="location.href='/games'"><span class="material-icons">sports_esports</span></button>
+        <button class="nav-button" onclick="location.href='/apps'"><span class="material-icons">apps</span></button>
+        <button class="nav-button" onclick="location.href='/browser'"><span class="material-icons">language</span></button>
+        <button class="nav-button active" onclick="location.href='/account'"><span class="material-icons">person</span></button>
+        <button class="nav-button" onclick="location.href='/settings'"><span class="material-icons">settings</span></button>
+    </nav>
+
+    <script src="./global/js/global.js"></script>
+    <script src="/components/cloaker.js"></script>
+    <script src="/components/overlay.js"></script>
+    <script src="/components/components.js"></script>
+    <script src="/components/404.js"></script>
+    <script>
+        document.body.classList.add('nav-pos-' + (localStorage.getItem('rift__nav-position') || 'bottom'));
+
+        const el = (id) => document.getElementById(id);
+        const statusEl = el('status');
+
+        function setStatus(message) {
+            statusEl.textContent = message;
+        }
+
+        async function refreshStatus() {
+            try {
+                const me = await window.RiftAuth.me();
+                if (!me.authenticated) {
+                    setStatus('not logged in.');
+                    return;
+                }
+                const save = await window.RiftAuth.getSave();
+                const gameCount = Object.keys(save.save.games || {}).length;
+                const settingCount = Object.keys(save.save.settings || {}).length;
+                setStatus(`logged in as ${me.user.username}. saved games: ${gameCount}. saved settings: ${settingCount}.`);
+            } catch (error) {
+                setStatus(error.message || 'request failed');
+            }
+        }
+
+        async function runAuth(mode) {
+            const username = el('username').value.trim();
+            const password = el('password').value;
+            if (!username || !password) {
+                setStatus('enter username and password first.');
+                return;
+            }
+            try {
+                if (mode === 'signup') await window.RiftAuth.signup(username, password);
+                if (mode === 'login') await window.RiftAuth.login(username, password);
+                await window.RiftAuth.saveLocalSettings();
+                await refreshStatus();
+            } catch (error) {
+                setStatus(error.message || `${mode} failed`);
+            }
+        }
+
+        el('signupBtn').addEventListener('click', () => runAuth('signup'));
+        el('loginBtn').addEventListener('click', () => runAuth('login'));
+        el('logoutBtn').addEventListener('click', async () => {
+            try {
+                await window.RiftAuth.logout();
+                await refreshStatus();
+            } catch (error) {
+                setStatus(error.message || 'logout failed');
+            }
+        });
+        el('refreshBtn').addEventListener('click', refreshStatus);
+        el('pushSettingsBtn').addEventListener('click', async () => {
+            try {
+                await window.RiftAuth.saveLocalSettings();
+                await refreshStatus();
+            } catch (error) {
+                setStatus(error.message || 'save failed');
+            }
+        });
+
+        refreshStatus();
+    </script>
+</body>
+</html>

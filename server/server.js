@@ -2,6 +2,7 @@ const express = require('express');
 const path = require('path');
 const fs = require('fs').promises;
 const dns = require('dns').promises;
+const crypto = require('crypto');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -13,6 +14,7 @@ app.use((req, res, next) => {
     res.setHeader('Expires', '0');
     next();
 });
+app.use(express.json({ limit: '1mb' }));
 
 // Comma-separated IP allowlist. Defaults to current Oracle public IP.
 const VALIDATE_TARGET_IPS = (process.env.VALIDATE_TARGET_IPS || '161.153.8.72')
@@ -30,6 +32,10 @@ const TRUFFLED_BASE = 'https://truffled.lol/';
 const VELARA_GAMES_JSON = 'https://velara.my/data/games.json';
 const VELARA_BASE = 'https://velara.my/';
 const VELARA_ORIGIN = 'https://velara.my';
+const AUTH_DB_PATH = path.join(__dirname, '..', 'data', 'auth-db.json');
+const SESSION_COOKIE = 'rift_sid';
+const SESSION_TTL_MS = 1000 * 60 * 60 * 24 * 30; // 30 days
+let authWriteLock = Promise.resolve();
 
 async function readRawBody(req) {
     return await new Promise((resolve, reject) => {
@@ -165,6 +171,154 @@ function isSafeHostname(hostname) {
     );
 }
 
+function jsonError(res, status, error) {
+    return res.status(status).json({ error });
+}
+
+function parseCookies(req) {
+    const raw = String(req.headers.cookie || '');
+    const out = {};
+    if (!raw) return out;
+    for (const entry of raw.split(';')) {
+        const idx = entry.indexOf('=');
+        if (idx === -1) continue;
+        const key = entry.slice(0, idx).trim();
+        const value = entry.slice(idx + 1).trim();
+        if (!key) continue;
+        out[key] = decodeURIComponent(value);
+    }
+    return out;
+}
+
+function setSessionCookie(res, token, expiresAt) {
+    const expires = new Date(expiresAt).toUTCString();
+    res.setHeader(
+        'Set-Cookie',
+        `${SESSION_COOKIE}=${encodeURIComponent(token)}; Path=/; HttpOnly; SameSite=Lax; Expires=${expires}`
+    );
+}
+
+function clearSessionCookie(res) {
+    res.setHeader(
+        'Set-Cookie',
+        `${SESSION_COOKIE}=; Path=/; HttpOnly; SameSite=Lax; Expires=Thu, 01 Jan 1970 00:00:00 GMT`
+    );
+}
+
+function createSalt() {
+    return crypto.randomBytes(16).toString('hex');
+}
+
+function hashPassword(password, salt) {
+    return crypto.scryptSync(password, salt, 64).toString('hex');
+}
+
+function createToken() {
+    return crypto.randomBytes(32).toString('hex');
+}
+
+function sanitizeUsername(value) {
+    return String(value || '').trim().toLowerCase();
+}
+
+function isValidUsername(username) {
+    return /^[a-z0-9_]{3,24}$/.test(username);
+}
+
+function isValidPassword(password) {
+    return typeof password === 'string' && password.length >= 8 && password.length <= 128;
+}
+
+async function ensureAuthDb() {
+    try {
+        await fs.access(AUTH_DB_PATH);
+    } catch {
+        await fs.mkdir(path.dirname(AUTH_DB_PATH), { recursive: true });
+        await fs.writeFile(
+            AUTH_DB_PATH,
+            JSON.stringify({ users: [], sessions: [], saves: {} }, null, 2),
+            'utf8'
+        );
+    }
+}
+
+async function readAuthDb() {
+    await ensureAuthDb();
+    const raw = await fs.readFile(AUTH_DB_PATH, 'utf8');
+    const db = JSON.parse(raw || '{}');
+    db.users = Array.isArray(db.users) ? db.users : [];
+    db.sessions = Array.isArray(db.sessions) ? db.sessions : [];
+    db.saves = db.saves && typeof db.saves === 'object' ? db.saves : {};
+    return db;
+}
+
+async function writeAuthDb(db) {
+    await fs.mkdir(path.dirname(AUTH_DB_PATH), { recursive: true });
+    await fs.writeFile(AUTH_DB_PATH, JSON.stringify(db, null, 2), 'utf8');
+}
+
+async function updateAuthDb(mutator) {
+    authWriteLock = authWriteLock.then(async () => {
+        const db = await readAuthDb();
+        const updated = await mutator(db);
+        await writeAuthDb(updated || db);
+    });
+    return authWriteLock;
+}
+
+async function getSessionFromRequest(req) {
+    const cookies = parseCookies(req);
+    const token = cookies[SESSION_COOKIE];
+    if (!token) return null;
+    const now = Date.now();
+    const db = await readAuthDb();
+    const session = db.sessions.find((entry) => entry && entry.token === token);
+    if (!session || session.expiresAt <= now) return null;
+    const user = db.users.find((entry) => entry && entry.id === session.userId);
+    if (!user) return null;
+    return { token, session, user, db };
+}
+
+function userSafeView(user) {
+    return {
+        id: user.id,
+        username: user.username,
+        createdAt: user.createdAt,
+    };
+}
+
+function getUserSave(db, userId) {
+    if (!db.saves[userId]) {
+        db.saves[userId] = { settings: {}, games: {} };
+    }
+    const save = db.saves[userId];
+    save.settings = save.settings && typeof save.settings === 'object' ? save.settings : {};
+    save.games = save.games && typeof save.games === 'object' ? save.games : {};
+    return save;
+}
+
+function parseProxyUpstreamFromReferer(req) {
+    const referer = String(req.get('referer') || '').trim();
+    if (!referer) return null;
+    try {
+        const refUrl = new URL(referer);
+        if (refUrl.pathname !== '/proxy') return null;
+        const upstream = refUrl.searchParams.get('url');
+        if (!upstream) return null;
+        return new URL(upstream);
+    } catch {
+        return null;
+    }
+}
+
+function isLikelyAssetPath(pathname) {
+    if (!pathname || pathname === '/') return false;
+    if (pathname.startsWith('/assets/') || pathname.startsWith('/components/') || pathname.startsWith('/scramjet/') || pathname.startsWith('/baremux/') || pathname.startsWith('/libcurl/')) {
+        return false;
+    }
+    return /\.(?:js|mjs|css|json|map|png|jpe?g|webp|gif|svg|ico|woff2?|ttf|otf|eot|mp3|ogg|wav|m4a|aac|flac|wasm|unityweb|data|bin|txt|xml)(?:$|\?)/i.test(pathname);
+}
+
 async function hostnamePointsToAllowedIp(hostname) {
     const now = Date.now();
     const cached = validateCache.get(hostname);
@@ -213,6 +367,301 @@ app.all(/^\/astra-accounts(?:\/(.*))?$/, async (req, res) => {
     return proxyVelara(req, res, '/astra-accounts', tail);
 });
 
+app.post('/api/auth/signup', async (req, res) => {
+    try {
+        const username = sanitizeUsername(req.body?.username);
+        const password = String(req.body?.password || '');
+        if (!isValidUsername(username)) {
+            return jsonError(res, 400, 'Username must be 3-24 chars: lowercase letters, numbers, underscore.');
+        }
+        if (!isValidPassword(password)) {
+            return jsonError(res, 400, 'Password must be 8-128 characters.');
+        }
+
+        const userId = crypto.randomUUID();
+        const now = Date.now();
+        const salt = createSalt();
+        const passwordHash = hashPassword(password, salt);
+        const token = createToken();
+        const expiresAt = now + SESSION_TTL_MS;
+
+        await updateAuthDb((db) => {
+            if (db.users.some((u) => u.username === username)) {
+                throw new Error('USERNAME_TAKEN');
+            }
+            db.users.push({
+                id: userId,
+                username,
+                passwordHash,
+                passwordSalt: salt,
+                createdAt: now,
+            });
+            db.sessions = db.sessions.filter((s) => s.expiresAt > now);
+            db.sessions.push({
+                token,
+                userId,
+                createdAt: now,
+                lastSeenAt: now,
+                expiresAt,
+            });
+            getUserSave(db, userId);
+            return db;
+        });
+
+        setSessionCookie(res, token, expiresAt);
+        return res.json({ ok: true, user: { id: userId, username, createdAt: now } });
+    } catch (error) {
+        if (error.message === 'USERNAME_TAKEN') {
+            return jsonError(res, 409, 'Username already exists.');
+        }
+        return jsonError(res, 500, `Signup failed: ${error.message}`);
+    }
+});
+
+app.post('/api/auth/login', async (req, res) => {
+    try {
+        const username = sanitizeUsername(req.body?.username);
+        const password = String(req.body?.password || '');
+        if (!username || !password) return jsonError(res, 400, 'Username and password are required.');
+
+        const db = await readAuthDb();
+        const user = db.users.find((u) => u.username === username);
+        if (!user) return jsonError(res, 401, 'Invalid username or password.');
+
+        const expected = hashPassword(password, user.passwordSalt);
+        if (expected !== user.passwordHash) {
+            return jsonError(res, 401, 'Invalid username or password.');
+        }
+
+        const now = Date.now();
+        const token = createToken();
+        const expiresAt = now + SESSION_TTL_MS;
+        await updateAuthDb((nextDb) => {
+            nextDb.sessions = nextDb.sessions.filter((s) => s.expiresAt > now && s.userId !== user.id);
+            nextDb.sessions.push({
+                token,
+                userId: user.id,
+                createdAt: now,
+                lastSeenAt: now,
+                expiresAt,
+            });
+            getUserSave(nextDb, user.id);
+            return nextDb;
+        });
+
+        setSessionCookie(res, token, expiresAt);
+        return res.json({ ok: true, user: userSafeView(user) });
+    } catch (error) {
+        return jsonError(res, 500, `Login failed: ${error.message}`);
+    }
+});
+
+app.post('/api/auth/logout', async (req, res) => {
+    try {
+        const cookies = parseCookies(req);
+        const token = cookies[SESSION_COOKIE];
+        if (token) {
+            await updateAuthDb((db) => {
+                db.sessions = db.sessions.filter((s) => s.token !== token);
+                return db;
+            });
+        }
+        clearSessionCookie(res);
+        return res.json({ ok: true });
+    } catch (error) {
+        return jsonError(res, 500, `Logout failed: ${error.message}`);
+    }
+});
+
+app.get('/api/auth/me', async (req, res) => {
+    try {
+        const auth = await getSessionFromRequest(req);
+        if (!auth) return res.status(401).json({ authenticated: false });
+
+        const now = Date.now();
+        await updateAuthDb((db) => {
+            const session = db.sessions.find((s) => s.token === auth.token);
+            if (session) {
+                session.lastSeenAt = now;
+            }
+            return db;
+        });
+
+        return res.json({ authenticated: true, user: userSafeView(auth.user) });
+    } catch (error) {
+        return jsonError(res, 500, `Session check failed: ${error.message}`);
+    }
+});
+
+app.get('/api/save', async (req, res) => {
+    try {
+        const auth = await getSessionFromRequest(req);
+        if (!auth) return jsonError(res, 401, 'Unauthorized');
+        const save = getUserSave(auth.db, auth.user.id);
+        return res.json({ ok: true, save });
+    } catch (error) {
+        return jsonError(res, 500, `Save read failed: ${error.message}`);
+    }
+});
+
+app.put('/api/save/settings', async (req, res) => {
+    try {
+        const auth = await getSessionFromRequest(req);
+        if (!auth) return jsonError(res, 401, 'Unauthorized');
+        const updates = req.body?.settings;
+        if (!updates || typeof updates !== 'object') {
+            return jsonError(res, 400, 'settings object is required');
+        }
+        await updateAuthDb((db) => {
+            const save = getUserSave(db, auth.user.id);
+            save.settings = { ...save.settings, ...updates };
+            return db;
+        });
+        return res.json({ ok: true });
+    } catch (error) {
+        return jsonError(res, 500, `Settings save failed: ${error.message}`);
+    }
+});
+
+app.put('/api/save/games/:gameId', async (req, res) => {
+    try {
+        const auth = await getSessionFromRequest(req);
+        if (!auth) return jsonError(res, 401, 'Unauthorized');
+        const gameId = String(req.params?.gameId || '').trim();
+        if (!gameId || gameId.length > 120) return jsonError(res, 400, 'Invalid gameId');
+        const progress = req.body?.progress;
+        if (!progress || typeof progress !== 'object') {
+            return jsonError(res, 400, 'progress object is required');
+        }
+        await updateAuthDb((db) => {
+            const save = getUserSave(db, auth.user.id);
+            const existing = save.games[gameId] && typeof save.games[gameId] === 'object'
+                ? save.games[gameId]
+                : {};
+            const launchDelta = Number(progress.launches || 0);
+            save.games[gameId] = {
+                ...existing,
+                ...progress,
+                launches: Number(existing.launches || 0) + (Number.isFinite(launchDelta) ? launchDelta : 0),
+                updatedAt: Date.now(),
+            };
+            return db;
+        });
+        return res.json({ ok: true });
+    } catch (error) {
+        return jsonError(res, 500, `Game save failed: ${error.message}`);
+    }
+});
+
+// Fallback for runtime same-origin asset requests emitted from proxied pages
+// (e.g. Unity/WebGL games requesting /media/* or font files).
+app.all('*', async (req, res, next) => {
+    const upstreamRef = parseProxyUpstreamFromReferer(req);
+    if (!upstreamRef) return next();
+
+    const method = (req.method || 'GET').toUpperCase();
+    const isBodyMethod = !['GET', 'HEAD'].includes(method);
+
+    // Forward non-GET requests from proxied pages (e.g. form POST /zc.php)
+    // so they don't hit Rift origin and fail with "Cannot POST ...".
+    if (isBodyMethod) {
+        try {
+            const target = new URL(req.url, upstreamRef.origin).href;
+            const body = await readRawBody(req);
+            const headers = {};
+            const blocked = new Set([
+                'host',
+                'connection',
+                'content-length',
+                'accept-encoding',
+                'x-forwarded-for',
+                'x-forwarded-host',
+                'x-forwarded-proto',
+            ]);
+            for (const [name, value] of Object.entries(req.headers || {})) {
+                if (!name || blocked.has(String(name).toLowerCase())) continue;
+                if (typeof value === 'undefined') continue;
+                headers[name] = value;
+            }
+
+            const targetUrl = new URL(target);
+            if (headers.origin) headers.origin = targetUrl.origin;
+            if (headers.referer) headers.referer = targetUrl.href;
+
+            const upstream = await fetch(target, {
+                method,
+                headers,
+                body,
+                redirect: 'manual',
+            });
+
+            const contentType = upstream.headers.get('content-type');
+            if (contentType) res.setHeader('Content-Type', contentType);
+            const location = upstream.headers.get('location');
+            if (location) {
+                const resolved = new URL(location, target).href;
+                res.setHeader('Location', `/proxy?url=${encodeURIComponent(resolved)}`);
+            }
+            const setCookie = upstream.headers.get('set-cookie');
+            if (setCookie) res.setHeader('Set-Cookie', setCookie);
+
+            const raw = Buffer.from(await upstream.arrayBuffer());
+            return res.status(upstream.status).send(raw);
+        } catch {
+            return next();
+        }
+    }
+
+    // Keep document navigations from proxied pages inside /proxy.
+    // Example: upstream redirects to "/signup/" and browser requests it on Rift origin.
+    if (!isLikelyAssetPath(req.path)) {
+        // Never rewrite requests that are already using the proxy endpoint.
+        if (req.path === '/proxy') {
+            return next();
+        }
+        const dest = String(req.get('sec-fetch-dest') || '').toLowerCase();
+        const accept = String(req.get('accept') || '').toLowerCase();
+        const likelyDocument = dest === 'document' || dest === 'iframe' || accept.includes('text/html');
+        if (likelyDocument) {
+            try {
+                const target = new URL(req.url, upstreamRef.origin).href;
+                return res.redirect(302, `/proxy?url=${encodeURIComponent(target)}`);
+            } catch {
+                return next();
+            }
+        }
+        return next();
+    }
+
+    try {
+        const cleanPath = req.path.replace(/^\/+/, '');
+        const fromRefDir = new URL(cleanPath, new URL('./', upstreamRef));
+        const fromOriginRoot = new URL(req.path, upstreamRef.origin);
+        const query = req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : '';
+        const candidates = [
+            `${fromRefDir.href}${query}`,
+            `${fromOriginRoot.href}${query}`,
+        ];
+
+        for (const candidate of candidates) {
+            try {
+                const upstream = await fetch(candidate);
+                if (!upstream.ok) continue;
+                const contentType = upstream.headers.get('content-type');
+                if (contentType) res.setHeader('Content-Type', contentType);
+                const raw = Buffer.from(await upstream.arrayBuffer());
+                return res.status(upstream.status).send(raw);
+            } catch {
+                // try next candidate
+            }
+        }
+
+        return next();
+    } catch {
+        return next();
+    }
+});
+
 // Clean URLs - serve .html files without extension
 app.use((req, res, next) => {
     if (!req.path.includes('.') && req.path !== '/') {
@@ -226,7 +675,7 @@ app.use((req, res, next) => {
 });
 
 // Proxy endpoint
-app.get('/proxy', async (req, res) => {
+app.all('/proxy', async (req, res) => {
     const targetUrl = req.query.url;
 
     if (!targetUrl) {
@@ -234,7 +683,39 @@ app.get('/proxy', async (req, res) => {
     }
 
     try {
-        const response = await fetch(targetUrl);
+        const method = req.method || 'GET';
+        const upperMethod = method.toUpperCase();
+        const isBodyMethod = !['GET', 'HEAD'].includes(upperMethod);
+        const body = isBodyMethod ? await readRawBody(req) : undefined;
+
+        const headers = {};
+        const blocked = new Set([
+            'host',
+            'connection',
+            'content-length',
+            'accept-encoding',
+            'x-forwarded-for',
+            'x-forwarded-host',
+            'x-forwarded-proto',
+        ]);
+        for (const [name, value] of Object.entries(req.headers || {})) {
+            if (!name || blocked.has(String(name).toLowerCase())) continue;
+            if (typeof value === 'undefined') continue;
+            headers[name] = value;
+        }
+
+        // Many signup/login flows validate origin/referer for POSTs.
+        try {
+            const target = new URL(String(targetUrl));
+            if (headers.origin) headers.origin = target.origin;
+            if (headers.referer) headers.referer = target.href;
+        } catch {}
+
+        const response = await fetch(targetUrl, {
+            method,
+            headers,
+            body,
+        });
         const contentType = (response.headers.get('content-type') || '').toLowerCase();
         const parsedTargetUrl = new URL(targetUrl);
         const isHtml =
@@ -255,6 +736,8 @@ app.get('/proxy', async (req, res) => {
                 }
             );
             res.setHeader('Content-Type', contentType || 'application/manifest+json; charset=utf-8');
+            const setCookie = response.headers.get('set-cookie');
+            if (setCookie) res.setHeader('Set-Cookie', setCookie);
             return res.status(response.status).send(rewrittenManifest);
         }
 
@@ -264,6 +747,8 @@ app.get('/proxy', async (req, res) => {
             if (contentType) {
                 res.setHeader('Content-Type', contentType);
             }
+            const setCookie = response.headers.get('set-cookie');
+            if (setCookie) res.setHeader('Set-Cookie', setCookie);
             return res.status(response.status).send(raw);
         }
 
@@ -283,7 +768,7 @@ app.get('/proxy', async (req, res) => {
         };
 
         let modifiedContent = content.replace(
-            /\b(href|src)\s*=\s*(["'])(.*?)\2/gi,
+            /\b(href|src|action)\s*=\s*(["'])(.*?)\2/gi,
             (match, attr, quote, value) => {
                 const rewritten = rewriteProxyUrl(value);
                 if (!rewritten) return match;
@@ -337,7 +822,9 @@ app.get('/proxy', async (req, res) => {
         }
 
         res.setHeader('Content-Type', 'text/html; charset=utf-8');
-        res.send(modifiedContent);
+        const setCookie = response.headers.get('set-cookie');
+        if (setCookie) res.setHeader('Set-Cookie', setCookie);
+        res.status(response.status).send(modifiedContent);
     } catch (error) {
         res.status(500).send('Error fetching the requested URL: ' + error.message);
     }

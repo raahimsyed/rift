@@ -113,3 +113,84 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 });
+
+// Global auth/save helper for Rift pages.
+(function () {
+    const SETTINGS_KEYS = [
+        'rift__nav-position',
+        'rift__launch-mode',
+        'rift__disguise-title',
+        'rift__disguise-favicon',
+    ];
+
+    async function request(url, options = {}) {
+        const res = await fetch(url, {
+            credentials: 'include',
+            headers: { 'Content-Type': 'application/json', ...(options.headers || {}) },
+            ...options,
+        });
+        let payload = null;
+        try {
+            payload = await res.json();
+        } catch {
+            payload = null;
+        }
+        if (!res.ok) {
+            const error = new Error(payload?.error || `request failed (${res.status})`);
+            error.status = res.status;
+            throw error;
+        }
+        return payload;
+    }
+
+    function collectLocalSettings() {
+        const settings = {};
+        for (const key of SETTINGS_KEYS) {
+            const value = localStorage.getItem(key);
+            if (value !== null) settings[key] = value;
+        }
+        return settings;
+    }
+
+    window.RiftAuth = {
+        async me() {
+            return await request('/api/auth/me');
+        },
+        async signup(username, password) {
+            return await request('/api/auth/signup', {
+                method: 'POST',
+                body: JSON.stringify({ username, password }),
+            });
+        },
+        async login(username, password) {
+            return await request('/api/auth/login', {
+                method: 'POST',
+                body: JSON.stringify({ username, password }),
+            });
+        },
+        async logout() {
+            return await request('/api/auth/logout', { method: 'POST' });
+        },
+        async getSave() {
+            return await request('/api/save');
+        },
+        async saveSettings(settings) {
+            return await request('/api/save/settings', {
+                method: 'PUT',
+                body: JSON.stringify({ settings }),
+            });
+        },
+        async saveLocalSettings() {
+            const settings = collectLocalSettings();
+            if (!Object.keys(settings).length) return { ok: true };
+            return await this.saveSettings(settings);
+        },
+        async saveGameProgress(gameId, progress) {
+            if (!gameId) return { ok: false };
+            return await request(`/api/save/games/${encodeURIComponent(gameId)}`, {
+                method: 'PUT',
+                body: JSON.stringify({ progress }),
+            });
+        },
+    };
+})();
