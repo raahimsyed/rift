@@ -669,11 +669,21 @@ const RiftVault = {
 
      async launchTab(url, external, title, favicon, game) {
           if (external) {
-               const target = String(url || "").startsWith("/")
-                    ? `${window.location.origin}${url}`
-                    : String(url || "");
-               const win = window.open(target, "_blank");
+               let upstream = String(url || "");
+               if (upstream.startsWith("/proxy?url=")) {
+                    try {
+                         const parsed = new URL(upstream, window.location.origin);
+                         const inner = parsed.searchParams.get("url");
+                         if (inner) upstream = inner;
+                    } catch {}
+               }
+               const browserUrl = `${window.location.origin}/browser?url=${encodeURIComponent(upstream)}&popout=1`;
+               const win = window.open("about:blank", "_blank");
                if (!win) return this.toast("popups blocked — allow popups and try again");
+               const loadingShell = `<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${sanitize(game?.name || "loading")}</title><style>html,body{margin:0;height:100%;background:#000;overflow:hidden;font-family:Arial,sans-serif}#load{position:fixed;inset:0;display:grid;place-items:center;gap:12px;color:#fff;letter-spacing:.08em;text-transform:lowercase;font-size:12px}#ring{width:56px;height:56px;border-radius:999px;border:3px solid rgba(255,255,255,.2);border-top-color:#fff;animation:s .9s linear infinite}@keyframes s{to{transform:rotate(360deg)}}</style></head><body><div id="load"><div id="ring"></div><div>loading game...</div></div><script>setTimeout(function(){location.replace(${JSON.stringify(browserUrl)});},120);</script></body></html>`;
+               win.document.open();
+               win.document.write(loadingShell);
+               win.document.close();
                return;
           }
 
