@@ -29,18 +29,26 @@
         </header>
     </div>
 
-    <div class="search-wrap">
-        <input type="text" id="vault-search" placeholder="search games..." />
-        <button id="vault-clear" class="search-clear" style="display:none" title="Clear">
-            <span class="material-icons">close</span>
-        </button>
-    </div>
-    <div class="vault-source-wrap">
-        <select id="vault-source-filter" aria-label="Game source">
-            <option value="all">all libraries</option>
-            <option value="gn-math">gn-math</option>
-            <option value="petezah-lite">petezah lite</option>
-        </select>
+    <div class="vault-controls">
+        <div class="search-wrap">
+            <input type="text" id="vault-search" placeholder="search games..." />
+            <button id="vault-clear" class="search-clear" style="display:none" title="Clear">
+                <span class="material-icons">close</span>
+            </button>
+        </div>
+        <div class="vault-source-wrap">
+            <select id="vault-source-filter" aria-label="Game source">
+                <option value="all">all games</option>
+                <option value="gn-math">gn-math</option>
+                <option value="sdxp">sdxp</option>
+                <option value="truffled">truffled</option>
+                <option value="velara">velara</option>
+                <option value="petezah">petezah lite</option>
+            </select>
+            <div id="truffled-launch-note" style="margin-top:6px;font-size:12px;opacity:.75;">
+                Games will load in about:blank for Truffled.
+            </div>
+        </div>
     </div>
 
     <main id="vault-grid"></main>
