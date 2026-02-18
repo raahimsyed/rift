@@ -297,6 +297,13 @@ function getUserSave(db, userId) {
     return save;
 }
 
+function safeJsonForInlineScript(value) {
+    return JSON.stringify(value)
+        .replace(/</g, '\\u003c')
+        .replace(/>/g, '\\u003e')
+        .replace(/&/g, '\\u0026');
+}
+
 function parseProxyUpstreamFromReferer(req) {
     const referer = String(req.get('referer') || '').trim();
     if (!referer) return null;
@@ -808,6 +815,29 @@ app.all('/proxy', async (req, res) => {
                     }
                 );
             }
+        }
+
+        // Logged-in cloud sync for proxied game localStorage.
+        // This allows saves to follow the user's Rift account across domains.
+        try {
+            const auth = await getSessionFromRequest(req);
+            if (auth) {
+                const scope = new URL('.', parsedTargetUrl).href;
+                const storageGameId = `proxy-storage:${scope}`;
+                const save = getUserSave(auth.db, auth.user.id);
+                const stored = save.games?.[storageGameId]?.localStorage;
+                const initialStorage = stored && typeof stored === 'object' ? stored : {};
+
+                const storageScript = `<script id="rift-proxy-storage">(function(){try{if(window.__riftProxyStorageInit)return;window.__riftProxyStorageInit=true;var scope=${safeJsonForInlineScript(scope)};var gameId=${safeJsonForInlineScript(storageGameId)};var seed=${safeJsonForInlineScript(initialStorage)};for(var k in seed){if(Object.prototype.hasOwnProperty.call(seed,k)&&localStorage.getItem(k)===null){try{localStorage.setItem(k,String(seed[k]));}catch(_e){}}}var pending=null;var saveNow=function(){try{var out={};for(var i=0;i<localStorage.length;i++){var key=localStorage.key(i);if(key!=null){out[key]=localStorage.getItem(key);}}fetch('/api/save/games/'+encodeURIComponent(gameId),{method:'PUT',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({progress:{localStorage:out,lastSyncedAt:Date.now(),scope:scope}}}).catch(function(){});}catch(_e){}};var schedule=function(){if(pending)clearTimeout(pending);pending=setTimeout(saveNow,600);};var sp=Storage.prototype;var _set=sp.setItem,_remove=sp.removeItem,_clear=sp.clear;sp.setItem=function(a,b){var r=_set.call(this,a,b);if(this===localStorage)schedule();return r;};sp.removeItem=function(a){var r=_remove.call(this,a);if(this===localStorage)schedule();return r;};sp.clear=function(){var r=_clear.call(this);if(this===localStorage)schedule();return r;};window.addEventListener('pagehide',saveNow);window.addEventListener('beforeunload',saveNow);}catch(_e){}})();</script>`;
+
+                if (/<head[^>]*>/i.test(modifiedContent)) {
+                    modifiedContent = modifiedContent.replace(/<head[^>]*>/i, `$&${storageScript}`);
+                } else {
+                    modifiedContent = storageScript + modifiedContent;
+                }
+            }
+        } catch {
+            // Ignore sync bootstrap failures and continue serving proxied page.
         }
 
         // Force Rift cursor inside proxied HTML pages rendered in the browser iframe.
