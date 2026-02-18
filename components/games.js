@@ -40,6 +40,12 @@ const VAULT_CONFIG = {
                bases: [],
                catalogUrl: "https://cdn.jsdelivr.net/gh/PeteZah-Games/PeteZahLite@main/search.json",
           },
+          seraph: {
+               key: "seraph",
+               label: "Seraph",
+               bases: [],
+               catalogUrl: "https://api.github.com/repos/a456pur/seraph/contents/games",
+          },
      },
      blocked: ["chat", "bot", "ai"],
 };
@@ -93,6 +99,24 @@ const RiftVault = {
                const res = await fetch(`${source.catalogUrl}?t=${Date.now()}`);
                if (!res.ok) throw new Error(`catalog ${res.status}`);
                const data = await res.json();
+               if (source.key === "seraph") {
+                    const rows = Array.isArray(data) ? data : [];
+                    return rows
+                         .filter((item) => item && item.type === "dir" && item.path && !String(item.name || "").startsWith("."))
+                         .map((item, index) => {
+                              const slug = String(item.name || "").trim();
+                              const label = slug.replace(/[-_]+/g, " ").replace(/\s+/g, " ").trim();
+                              return {
+                                   id: `${source.key}:${index}`,
+                                   name: label || `game ${index + 1}`,
+                                   url: `https://cdn.jsdelivr.net/gh/a456pur/seraph@main/games/${encodeURIComponent(slug)}/`,
+                                   cover: "",
+                                   source: source.key,
+                                   sourceLabel: source.label,
+                                   sourceBase: window.location.origin,
+                              };
+                         });
+               }
                const rows = Array.isArray(data?.games) ? data.games : [];
                return rows.map((item, index) => ({
                     id: `${source.key}:${index}`,
@@ -249,6 +273,7 @@ const RiftVault = {
                velara: 2,
                "gn-math": 3,
                petezah: 4,
+               seraph: 5,
           };
           return rank[source] ?? 9;
      },
