@@ -305,7 +305,10 @@ function safeJsonForInlineScript(value) {
     return JSON.stringify(value)
         .replace(/</g, '\\u003c')
         .replace(/>/g, '\\u003e')
-        .replace(/&/g, '\\u0026');
+        .replace(/&/g, '\\u0026')
+        .replace(/\u2028/g, '\\u2028')
+        .replace(/\u2029/g, '\\u2029')
+        .replace(/<\/script/gi, '<\\/script');
 }
 
 function parseProxyUpstreamFromReferer(req) {
@@ -819,6 +822,15 @@ app.all('/proxy', async (req, res) => {
                     }
                 );
             }
+        }
+
+        // Many mirror game builds reference YaGames SDK; when blocked/unavailable,
+        // inline startup scripts crash before the game boots. Provide a no-op shim.
+        const yaGamesShim = '<script id="rift-yagames-shim">(function(){if(window.YaGames)return;window.YaGames={init:function(){return Promise.resolve({adv:{showFullscreenAdv:function(){return Promise.resolve();},showRewardedVideo:function(){return Promise.resolve();}},features:{LoadingAPI:{ready:function(){}}}});}};})();</script>';
+        if (/<head[^>]*>/i.test(modifiedContent)) {
+            modifiedContent = modifiedContent.replace(/<head[^>]*>/i, `$&${yaGamesShim}`);
+        } else {
+            modifiedContent = yaGamesShim + modifiedContent;
         }
 
         // Logged-in cloud sync for proxied game localStorage.
