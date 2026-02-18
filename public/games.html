@@ -19,7 +19,35 @@
                 </div>
                 <div id="viewer-label"></div>
             </div>
+            <div id="viewer-loading" class="viewer-loading" style="display:none;">
+                <div class="loader-ring"></div>
+                <div class="viewer-loading-text">loading game...</div>
+            </div>
             <iframe id="viewer-frame"></iframe>
+        </div>
+    </div>
+
+    <div id="game-detail-backdrop" class="game-detail-backdrop" style="display:none;">
+        <div id="game-detail-card" class="game-detail-card">
+            <button id="game-detail-close" class="game-detail-close" title="Close">
+                <span class="material-icons">close</span>
+            </button>
+            <div class="game-detail-image-wrap">
+                <img id="game-detail-image" class="game-detail-image" alt="Game cover" />
+            </div>
+            <div id="game-detail-name" class="game-detail-name"></div>
+            <div id="game-detail-source" class="game-detail-source"></div>
+            <div class="game-detail-actions">
+                <button id="game-detail-favorite" class="game-detail-btn">
+                    <span class="material-icons">favorite_border</span> favorite
+                </button>
+                <button id="game-detail-save" class="game-detail-btn">
+                    <span class="material-icons">bookmark_border</span> save
+                </button>
+                <button id="game-detail-play" class="game-detail-btn primary">
+                    <span class="material-icons">play_arrow</span> play
+                </button>
+            </div>
         </div>
     </div>
 

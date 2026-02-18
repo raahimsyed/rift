@@ -4,6 +4,8 @@ const VAULT_CONFIG = {
           disguiseTitle: "rift__disguise-title",
           disguiseFavicon: "rift__disguise-favicon",
           launchMode: "rift__launch-mode",
+          favorites: "rift__game-favorites",
+          saved: "rift__game-saved",
      },
      defaults: {
           mode: "window",
@@ -53,6 +55,7 @@ const VAULT_CONFIG = {
 let catalog = [];
 let launchMode = VAULT_CONFIG.defaults.mode;
 let drag = { active: false, x: 0, y: 0, ox: 0, oy: 0 };
+let selectedGame = null;
 
 const el = (id) => document.getElementById(id);
 
@@ -210,6 +213,16 @@ const RiftVault = {
           }
           this.updateTruffledNote(sourceFilter?.value || "all");
 
+          el("game-detail-close")?.addEventListener("click", () => this.closeGameDetail());
+          el("game-detail-backdrop")?.addEventListener("click", (event) => {
+               if (event.target?.id === "game-detail-backdrop") this.closeGameDetail();
+          });
+          el("game-detail-play")?.addEventListener("click", () => {
+               if (selectedGame?.id) this.launch(selectedGame.id);
+          });
+          el("game-detail-favorite")?.addEventListener("click", () => this.toggleFavorite());
+          el("game-detail-save")?.addEventListener("click", () => this.markSaved());
+
           const bar = el("viewer-bar");
           if (bar) {
                bar.querySelector(".dot.close")?.addEventListener("click", () => this.closeViewer());
@@ -346,9 +359,97 @@ const RiftVault = {
                label.textContent = g.name.toUpperCase();
                tile.appendChild(label);
 
-               tile.addEventListener("click", () => this.launch(g.id));
+               tile.addEventListener("click", () => this.openGameDetail(g.id));
                grid.appendChild(tile);
           });
+     },
+
+     getStoredMap(key) {
+          try {
+               const raw = localStorage.getItem(key);
+               const parsed = raw ? JSON.parse(raw) : {};
+               return parsed && typeof parsed === "object" ? parsed : {};
+          } catch {
+               return {};
+          }
+     },
+
+     setStoredMap(key, value) {
+          localStorage.setItem(key, JSON.stringify(value || {}));
+     },
+
+     isFavorited(gameId) {
+          return Boolean(this.getStoredMap(VAULT_CONFIG.keys.favorites)[gameId]);
+     },
+
+     isSaved(gameId) {
+          return Boolean(this.getStoredMap(VAULT_CONFIG.keys.saved)[gameId]);
+     },
+
+     openGameDetail(gameId) {
+          const game = catalog.find((g) => g.id === gameId);
+          if (!game) return;
+          selectedGame = game;
+          const image = el("game-detail-image");
+          const name = el("game-detail-name");
+          const source = el("game-detail-source");
+          const backdrop = el("game-detail-backdrop");
+          if (name) name.textContent = String(game.name || "").toUpperCase();
+          if (source) source.textContent = `source: ${game.sourceLabel || game.source || "unknown"}`;
+          if (image) {
+               const cover = this.resolveCoverUrl(game);
+               image.src = cover || "/assets/images/rift logo.png";
+               image.onerror = () => { image.src = "/assets/images/rift logo.png"; };
+          }
+          this.refreshDetailButtons();
+          if (backdrop) backdrop.style.display = "flex";
+     },
+
+     closeGameDetail() {
+          const backdrop = el("game-detail-backdrop");
+          if (backdrop) backdrop.style.display = "none";
+     },
+
+     refreshDetailButtons() {
+          if (!selectedGame) return;
+          const favBtn = el("game-detail-favorite");
+          const saveBtn = el("game-detail-save");
+          const favorite = this.isFavorited(selectedGame.id);
+          const saved = this.isSaved(selectedGame.id);
+          if (favBtn) {
+               favBtn.innerHTML = `<span class="material-icons">${favorite ? "favorite" : "favorite_border"}</span> ${favorite ? "favorited" : "favorite"}`;
+          }
+          if (saveBtn) {
+               saveBtn.innerHTML = `<span class="material-icons">${saved ? "bookmark" : "bookmark_border"}</span> ${saved ? "saved" : "save"}`;
+          }
+     },
+
+     async toggleFavorite() {
+          if (!selectedGame) return;
+          const map = this.getStoredMap(VAULT_CONFIG.keys.favorites);
+          const next = !map[selectedGame.id];
+          if (next) map[selectedGame.id] = { at: Date.now() };
+          else delete map[selectedGame.id];
+          this.setStoredMap(VAULT_CONFIG.keys.favorites, map);
+          this.refreshDetailButtons();
+          if (window.RiftAuth?.saveGameProgress) {
+               try {
+                    await window.RiftAuth.saveGameProgress(selectedGame.id, { favorite: next, favoriteAt: Date.now() });
+               } catch {}
+          }
+     },
+
+     async markSaved() {
+          if (!selectedGame) return;
+          const map = this.getStoredMap(VAULT_CONFIG.keys.saved);
+          map[selectedGame.id] = { at: Date.now() };
+          this.setStoredMap(VAULT_CONFIG.keys.saved, map);
+          this.refreshDetailButtons();
+          if (window.RiftAuth?.saveGameProgress) {
+               try {
+                    await window.RiftAuth.saveGameProgress(selectedGame.id, { saved: true, savedAt: Date.now() });
+               } catch {}
+          }
      },
 
      resolveCoverUrl(game) {
@@ -372,14 +473,17 @@ const RiftVault = {
           const backdrop = el("viewer-backdrop");
           const frame = el("viewer-frame");
           const restore = el("viewer-restore");
+          const loader = el("viewer-loading");
 
           if (!viewer || !backdrop || !frame) return;
           viewer.classList.remove("active", "shrunk");
           if (restore) restore.style.display = "none";
+          if (loader) loader.style.display = "none";
 
           setTimeout(() => {
                frame.srcdoc = "";
                frame.src = "";
+               frame.onload = null;
                backdrop.style.display = "none";
                viewer.style.transform = "";
                drag.ox = drag.oy = 0;
@@ -469,6 +573,7 @@ const RiftVault = {
           if (!game) return this.toast("game not found");
 
           try {
+               this.closeGameDetail();
                this.trackLaunch(game);
                const title = localStorage.getItem(VAULT_CONFIG.keys.disguiseTitle) || VAULT_CONFIG.defaults.title;
                const favicon = localStorage.getItem(VAULT_CONFIG.keys.disguiseFavicon) || VAULT_CONFIG.defaults.favicon;
@@ -499,6 +604,8 @@ const RiftVault = {
                     url = `/proxy?url=${encodeURIComponent(url)}`;
                }
 
+               const launchUrl = this.prepareLaunchUrl(url, external);
+
                if (game.source === "truffled" || external) {
                     launchMode = "tab";
                     localStorage.setItem(VAULT_CONFIG.keys.launchMode, "tab");
@@ -506,9 +613,9 @@ const RiftVault = {
 
                const effectiveMode = (game.source === "truffled" || external) ? "tab" : launchMode;
                if (effectiveMode === "tab") {
-                    await this.launchTab(url, external, title, favicon, game);
+                    await this.launchTab(launchUrl, external, title, favicon, game);
                } else {
-                    await this.launchViewer(url, external, game.name, title, favicon, game);
+                    await this.launchViewer(launchUrl, external, game.name, title, favicon, game);
                }
           } catch (err) {
                console.error(err);
@@ -537,6 +644,13 @@ const RiftVault = {
           }
      },
 
+     prepareLaunchUrl(url, external) {
+          if (!external) return url;
+          if (String(url).startsWith("/proxy?url=")) return url;
+          if (String(url).startsWith("/")) return url;
+          return `/proxy?url=${encodeURIComponent(url)}`;
+     },
+
      async trackLaunch(game) {
           if (!game || !window.RiftAuth?.saveGameProgress) return;
           const payload = {
@@ -557,28 +671,32 @@ const RiftVault = {
           const win = window.open("about:blank", "_blank");
           if (!win) return this.toast("popups blocked — allow popups and try again");
 
-          if (external) {
-               const browserUrl = `${window.location.origin}/browser?url=${encodeURIComponent(url)}&popout=1`;
-               win.location.replace(browserUrl);
-          } else {
-               const html = await fetch(url).then((r) => r.text());
-               this.inject(html, true, win, title, favicon);
-          }
+          const loadingShell = `<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${sanitize(game?.name || "loading")}</title><style>html,body{margin:0;height:100%;background:#000;overflow:hidden;font-family:Arial,sans-serif}#wrap{position:fixed;inset:0}#frame{position:absolute;inset:0;width:100%;height:100%;border:none;opacity:0;transition:opacity .2s ease}#load{position:absolute;inset:0;display:grid;place-items:center;gap:12px;background:#000;color:#fff;letter-spacing:.08em;text-transform:lowercase;font-size:12px}#ring{width:56px;height:56px;border-radius:999px;border:3px solid rgba(255,255,255,.2);border-top-color:#fff;animation:s .9s linear infinite}@keyframes s{to{transform:rotate(360deg)}}</style></head><body><div id="wrap"><iframe id="frame" src="${sanitize(url)}"></iframe><div id="load"><div id="ring"></div><div>loading game...</div></div></div><script>var f=document.getElementById('frame');var l=document.getElementById('load');f.addEventListener('load',function(){l.style.display='none';f.style.opacity='1';});setTimeout(function(){l.style.display='none';f.style.opacity='1';},12000);</script></body></html>`;
+          win.document.open();
+          win.document.write(loadingShell);
+          win.document.close();
      },
 
      async launchViewer(url, external, name, title, favicon, game) {
           const label = el("viewer-label");
           if (label) label.textContent = name.toUpperCase();
+          const loader = el("viewer-loading");
 
           if (external) {
                const frame = el("viewer-frame");
                const backdrop = el("viewer-backdrop");
-               if (frame) frame.src = url;
+               if (loader) loader.style.display = "grid";
+               if (frame) {
+                    frame.onload = () => { if (loader) loader.style.display = "none"; };
+                    frame.src = url;
+               }
                if (backdrop) backdrop.style.display = "flex";
                setTimeout(() => el("game-viewer")?.classList.add("active"), 10);
           } else {
+               if (loader) loader.style.display = "grid";
                const html = await fetch(url).then((r) => r.text());
                this.inject(html, true, null, title, favicon);
+               if (loader) loader.style.display = "none";
           }
      },
 
