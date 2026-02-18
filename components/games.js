@@ -121,7 +121,7 @@ const RiftVault = {
                     if (clearBtn) clearBtn.style.display = e.target.value ? "flex" : "none";
                });
           }
-          const sourceSelect = el("vault-source");
+          const sourceSelect = el("vault-source-filter") || el("vault-source");
           if (sourceSelect) {
                sourceSelect.addEventListener("change", () => {
                     this.display(searchBox?.value || "");
@@ -193,7 +193,7 @@ const RiftVault = {
           if (!grid) return;
 
           const q = query.toLowerCase();
-          const source = el("vault-source")?.value || "all";
+          const source = (el("vault-source-filter") || el("vault-source"))?.value || "all";
           let results = catalog.filter((g) => {
                const n = (g.name || "").toLowerCase();
                const sourceOk = source === "all" || g.sourceId === source;
