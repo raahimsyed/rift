@@ -606,14 +606,16 @@ const RiftVault = {
 
                const launchUrl = this.prepareLaunchUrl(url, external);
 
-               if (game.source === "truffled" || external) {
+               const remoteExternal = /^https?:\/\//i.test(url) || String(url).startsWith("/proxy?url=");
+
+               if (game.source === "truffled" || remoteExternal) {
                     launchMode = "tab";
                     localStorage.setItem(VAULT_CONFIG.keys.launchMode, "tab");
                }
 
-               const effectiveMode = (game.source === "truffled" || external) ? "tab" : launchMode;
+               const effectiveMode = (game.source === "truffled" || remoteExternal) ? "tab" : launchMode;
                if (effectiveMode === "tab") {
-                    await this.launchTab(launchUrl, external, title, favicon, game);
+                    await this.launchTab(launchUrl, remoteExternal, title, favicon, game);
                } else {
                     await this.launchViewer(launchUrl, external, game.name, title, favicon, game);
                }
@@ -667,8 +669,8 @@ const RiftVault = {
           }
      },
 
-     async launchTab(url, external, title, favicon, game) {
-          if (external) {
+     async launchTab(url, useBrowserRoute, title, favicon, game) {
+          if (useBrowserRoute) {
                let upstream = String(url || "");
                if (upstream.startsWith("/proxy?url=")) {
                     try {
@@ -684,6 +686,13 @@ const RiftVault = {
                win.document.open();
                win.document.write(loadingShell);
                win.document.close();
+               return;
+          }
+
+          if (String(url || "").startsWith("/")) {
+               const target = `${window.location.origin}${url}`;
+               const win = window.open(target, "_blank");
+               if (!win) return this.toast("popups blocked — allow popups and try again");
                return;
           }
 
