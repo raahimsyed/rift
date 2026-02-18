@@ -10,12 +10,23 @@ const VAULT_CONFIG = {
           title: "Google",
           favicon: "https://www.google.com/favicon.ico",
      },
-     catalog: {
-          base: "https://cdn.jsdelivr.net/gh/gn-math",
-          get url() {
-               return `${this.base}/assets@main/zones.json?t=${Date.now()}`;
+     catalogs: [
+          {
+               id: "gn-math",
+               name: "gn-math",
+               type: "gn-math",
+               base: "https://cdn.jsdelivr.net/gh/gn-math",
+               get url() {
+                    return `${this.base}/assets@main/zones.json?t=${Date.now()}`;
+               },
           },
-     },
+          {
+               id: "petezah-lite",
+               name: "petezah lite",
+               type: "petezah-lite",
+               url: `https://cdn.jsdelivr.net/gh/PeteZah-Games/PeteZahLite@main/search.json?t=${Date.now()}`,
+          },
+     ],
      blocked: ["chat", "bot", "ai"],
 };
 
@@ -47,10 +58,58 @@ const RiftVault = {
      },
 
      async fetchCatalog() {
-          const res = await fetch(VAULT_CONFIG.catalog.url);
-          if (!res.ok) throw new Error(`catalog ${res.status}`);
+          const reads = await Promise.allSettled(
+               VAULT_CONFIG.catalogs.map((source) => this.fetchSource(source))
+          );
+
+          const loaded = reads
+               .filter((result) => result.status === "fulfilled")
+               .flatMap((result) => result.value);
+
+          if (!loaded.length) throw new Error("no catalog sources available");
+          catalog = loaded;
+     },
+
+     async fetchSource(source) {
+          const res = await fetch(source.url);
+          if (!res.ok) throw new Error(`${source.id} ${res.status}`);
           const data = await res.json();
-          catalog = Array.isArray(data) ? data.slice(1) : [];
+
+          if (source.type === "gn-math") {
+               const list = Array.isArray(data) ? data.slice(1) : [];
+               return list.map((item, index) => ({
+                    id: `${source.id}:${item.id || index}`,
+                    sourceId: source.id,
+                    sourceName: source.name,
+                    name: item.name || `game ${index + 1}`,
+                    cover: item.cover || "",
+                    url: item.url || "",
+                    external: (item.url || "").includes("://"),
+               }));
+          }
+
+          if (source.type === "petezah-lite") {
+               const list = Array.isArray(data?.games) ? data.games : [];
+               return list.map((item, index) => ({
+                    id: `${source.id}:${index}`,
+                    sourceId: source.id,
+                    sourceName: source.name,
+                    name: item.label || `game ${index + 1}`,
+                    cover: item.imageUrl || "",
+                    url: this.normalizeExternalUrl(item.url || ""),
+                    external: true,
+               }));
+          }
+
+          return [];
+     },
+
+     normalizeExternalUrl(url) {
+          const value = String(url || "").trim();
+          if (!value) return value;
+          if (!/^https?:\/\//i.test(value)) return `https://${value.replace(/^\/+/, "")}`;
+          if (/\.[a-z0-9]+(\?|#|$)/i.test(value) || value.endsWith("/")) return value;
+          return `${value}/index.html`;
      },
 
      bind() {
@@ -60,6 +119,12 @@ const RiftVault = {
                searchBox.addEventListener("input", (e) => {
                     this.display(e.target.value);
                     if (clearBtn) clearBtn.style.display = e.target.value ? "flex" : "none";
+               });
+          }
+          const sourceSelect = el("vault-source");
+          if (sourceSelect) {
+               sourceSelect.addEventListener("change", () => {
+                    this.display(searchBox?.value || "");
                });
           }
           if (clearBtn) {
@@ -128,10 +193,24 @@ const RiftVault = {
           if (!grid) return;
 
           const q = query.toLowerCase();
-          const results = catalog.filter((g) => {
-               const n = g.name.toLowerCase();
-               return n.includes(q) && !VAULT_CONFIG.blocked.some((b) => n.includes(b));
-          }).sort((a, b) => a.name.localeCompare(b.name));
+          const source = el("vault-source")?.value || "all";
+          let results = catalog.filter((g) => {
+               const n = (g.name || "").toLowerCase();
+               const sourceOk = source === "all" || g.sourceId === source;
+               return sourceOk && n.includes(q) && !VAULT_CONFIG.blocked.some((b) => n.includes(b));
+          });
+
+          if (source === "all") {
+               const seen = new Set();
+               results = results.filter((g) => {
+                    const key = (g.name || "").trim().toLowerCase();
+                    if (!key || seen.has(key)) return false;
+                    seen.add(key);
+                    return true;
+               });
+          }
+
+          results.sort((a, b) => a.name.localeCompare(b.name));
 
           grid.innerHTML = "";
           results.forEach((g) => {
@@ -140,7 +219,9 @@ const RiftVault = {
 
                if (g.cover) {
                     const img = document.createElement("img");
-                    img.src = g.cover.replace("{COVER_URL}", `${VAULT_CONFIG.catalog.base}/covers@main`);
+                    img.src = g.sourceId === "gn-math"
+                         ? g.cover.replace("{COVER_URL}", `https://cdn.jsdelivr.net/gh/gn-math/covers@main`)
+                         : g.cover;
                     img.alt = g.name;
                     img.loading = "lazy";
                     img.onerror = () => img.remove();
@@ -148,7 +229,7 @@ const RiftVault = {
                }
 
                const label = document.createElement("span");
-               label.textContent = g.name.toUpperCase();
+               label.textContent = `${g.name} • ${g.sourceName}`.toUpperCase();
                tile.appendChild(label);
 
                tile.addEventListener("click", () => this.launch(g.id));
@@ -260,12 +341,12 @@ const RiftVault = {
           try {
                const title = localStorage.getItem(VAULT_CONFIG.keys.disguiseTitle) || VAULT_CONFIG.defaults.title;
                const favicon = localStorage.getItem(VAULT_CONFIG.keys.disguiseFavicon) || VAULT_CONFIG.defaults.favicon;
-               const external = game.url.includes("://");
+               const external = Boolean(game.external || game.url.includes("://"));
                const url = external
                     ? game.url
                     : game.url
-                         .replace("{COVER_URL}", `${VAULT_CONFIG.catalog.base}/covers@main`)
-                         .replace("{HTML_URL}", `${VAULT_CONFIG.catalog.base}/html@main`);
+                         .replace("{COVER_URL}", "https://cdn.jsdelivr.net/gh/gn-math/covers@main")
+                         .replace("{HTML_URL}", "https://cdn.jsdelivr.net/gh/gn-math/html@main");
 
                if (launchMode === "tab") {
                     await this.launchTab(url, external, title, favicon);

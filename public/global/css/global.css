@@ -227,6 +227,32 @@ header h1 {
   margin: 0 auto 24px;
 }
 
+.source-wrap {
+  width: 100%;
+  max-width: 500px;
+  margin: -12px auto 20px;
+}
+
+#vault-source {
+  width: 100%;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.05);
+  color: rgba(255, 255, 255, 0.9);
+  padding: 10px 14px;
+  font-family: "Run", Arial, sans-serif;
+  font-size: 12px;
+  text-transform: lowercase;
+  letter-spacing: 0.08em;
+  outline: none;
+  backdrop-filter: blur(10px);
+}
+
+#vault-source:focus {
+  border-color: rgba(255, 255, 255, 0.4);
+  box-shadow: 0 0 20px rgba(255, 255, 255, 0.1);
+}
+
 #gameSearch,
 #vault-search {
   width: 100%;
