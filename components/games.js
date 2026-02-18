@@ -668,13 +668,19 @@ const RiftVault = {
      },
 
      async launchTab(url, external, title, favicon, game) {
+          if (external) {
+               const target = String(url || "").startsWith("/")
+                    ? `${window.location.origin}${url}`
+                    : String(url || "");
+               const win = window.open(target, "_blank");
+               if (!win) return this.toast("popups blocked — allow popups and try again");
+               return;
+          }
+
           const win = window.open("about:blank", "_blank");
           if (!win) return this.toast("popups blocked — allow popups and try again");
-
-          const loadingShell = `<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${sanitize(game?.name || "loading")}</title><style>html,body{margin:0;height:100%;background:#000;overflow:hidden;font-family:Arial,sans-serif}#wrap{position:fixed;inset:0}#frame{position:absolute;inset:0;width:100%;height:100%;border:none;opacity:0;transition:opacity .2s ease}#load{position:absolute;inset:0;display:grid;place-items:center;gap:12px;background:#000;color:#fff;letter-spacing:.08em;text-transform:lowercase;font-size:12px}#ring{width:56px;height:56px;border-radius:999px;border:3px solid rgba(255,255,255,.2);border-top-color:#fff;animation:s .9s linear infinite}@keyframes s{to{transform:rotate(360deg)}}</style></head><body><div id="wrap"><iframe id="frame" src="${sanitize(url)}"></iframe><div id="load"><div id="ring"></div><div>loading game...</div></div></div><script>var f=document.getElementById('frame');var l=document.getElementById('load');f.addEventListener('load',function(){l.style.display='none';f.style.opacity='1';});setTimeout(function(){l.style.display='none';f.style.opacity='1';},12000);</script></body></html>`;
-          win.document.open();
-          win.document.write(loadingShell);
-          win.document.close();
+          const html = await fetch(url).then((r) => r.text());
+          this.inject(html, true, win, title, favicon);
      },
 
      async launchViewer(url, external, name, title, favicon, game) {
