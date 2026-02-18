@@ -258,11 +258,15 @@ async function writeAuthDb(db) {
 }
 
 async function updateAuthDb(mutator) {
-    authWriteLock = authWriteLock.then(async () => {
-        const db = await readAuthDb();
-        const updated = await mutator(db);
-        await writeAuthDb(updated || db);
-    });
+    authWriteLock = authWriteLock
+        .catch(() => {
+            // Reset lock chain after failures so a rejected write doesn't poison future writes.
+        })
+        .then(async () => {
+            const db = await readAuthDb();
+            const updated = await mutator(db);
+            await writeAuthDb(updated || db);
+        });
     return authWriteLock;
 }
 
