@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rift Chat</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+    <link rel="stylesheet" href="./global/css/global.css">
+    <style>
+        .chat-shell { width: min(92vw, 760px); margin: 0 auto; display: grid; gap: 12px; }
+        .chat-list {
+            height: min(58vh, 620px);
+            overflow: auto;
+            border: 1px solid rgba(255,255,255,.15);
+            border-radius: 14px;
+            background: rgba(255,255,255,.03);
+            padding: 10px;
+            display: grid;
+            gap: 8px;
+        }
+        .chat-item {
+            border: 1px solid rgba(255,255,255,.12);
+            border-radius: 10px;
+            background: rgba(255,255,255,.04);
+            padding: 8px 10px;
+        }
+        .chat-meta { font-size: 11px; color: rgba(255,255,255,.55); margin-bottom: 4px; }
+        .chat-text { color: #fff; font-size: 13px; line-height: 1.4; word-break: break-word; }
+        .chat-form { display: grid; grid-template-columns: 1fr auto; gap: 8px; }
+        .chat-input {
+            border-radius: 10px;
+            border: 1px solid rgba(255,255,255,.18);
+            background: rgba(255,255,255,.05);
+            color: #fff;
+            padding: 10px 12px;
+            font-family: "Run", Arial, sans-serif;
+        }
+        .chat-btn {
+            border: 1px solid rgba(255,255,255,.22);
+            border-radius: 10px;
+            background: rgba(255,255,255,.1);
+            color: #fff;
+            padding: 10px 14px;
+            cursor: pointer;
+            font-family: "Run", Arial, sans-serif;
+            font-size: 12px;
+        }
+        .chat-status { color: rgba(255,255,255,.62); font-size: 12px; min-height: 18px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>rift chat</h1>
+            <p class="page-subtitle">public room for account users</p>
+        </header>
+        <section class="chat-shell">
+            <div id="chatStatus" class="chat-status">checking session...</div>
+            <div id="chatList" class="chat-list"></div>
+            <form id="chatForm" class="chat-form">
+                <input id="chatInput" class="chat-input" maxlength="400" placeholder="type message..." />
+                <button class="chat-btn" type="submit">send</button>
+            </form>
+        </section>
+    </div>
+
+    <nav class="bottom-nav">
+        <button class="nav-button" onclick="location.href='/'"><span class="material-icons">home</span></button>
+        <button class="nav-button active" onclick="location.href='/chat'"><span class="material-icons">forum</span></button>
+        <button class="nav-button" onclick="location.href='/games'"><span class="material-icons">sports_esports</span></button>
+        <button class="nav-button" onclick="location.href='/account'"><span class="material-icons">person</span></button>
+        <button class="nav-button" onclick="location.href='/settings'"><span class="material-icons">settings</span></button>
+    </nav>
+
+    <script src="./global/js/global.js"></script>
+    <script>
+        document.body.classList.add('nav-pos-' + (localStorage.getItem('rift__nav-position') || 'bottom'));
+
+        const statusEl = document.getElementById('chatStatus');
+        const listEl = document.getElementById('chatList');
+        const formEl = document.getElementById('chatForm');
+        const inputEl = document.getElementById('chatInput');
+        let lastTs = 0;
+        let canChat = false;
+
+        function setStatus(text) { statusEl.textContent = text; }
+        function esc(text) { const s=document.createElement('span'); s.textContent=text; return s.innerHTML; }
+        function fmt(ts) { try { return new Date(ts).toLocaleTimeString(); } catch { return ''; } }
+
+        function render(messages, append) {
+            if (!append) listEl.innerHTML = '';
+            messages.forEach((m) => {
+                const item = document.createElement('div');
+                item.className = 'chat-item';
+                item.innerHTML = `<div class="chat-meta">${esc(m.username || 'user')} • ${esc(fmt(m.createdAt))}</div><div class="chat-text">${esc(m.text || '')}</div>`;
+                listEl.appendChild(item);
+                lastTs = Math.max(lastTs, Number(m.createdAt) || 0);
+            });
+            listEl.scrollTop = listEl.scrollHeight;
+        }
+
+        async function refresh(initial) {
+            if (!canChat) return;
+            try {
+                const url = initial ? '/api/chat/messages' : `/api/chat/messages?since=${lastTs}`;
+                const data = await fetch(url, { credentials: 'include' }).then((r) => r.json());
+                if (!data.ok) return;
+                render(Array.isArray(data.messages) ? data.messages : [], !initial);
+            } catch {}
+        }
+
+        async function boot() {
+            try {
+                const me = await window.RiftAuth.me();
+                if (!me.authenticated) {
+                    setStatus('login required. open account page to sign in.');
+                    formEl.style.display = 'none';
+                    return;
+                }
+                canChat = true;
+                setStatus(`signed in as ${me.user.username}`);
+                await refresh(true);
+                setInterval(() => refresh(false), 3000);
+            } catch {
+                setStatus('chat unavailable');
+            }
+        }
+
+        formEl.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            if (!canChat) return;
+            const text = String(inputEl.value || '').trim();
+            if (!text) return;
+            inputEl.value = '';
+            try {
+                const payload = { text };
+                const out = await fetch('/api/chat/messages', {
+                    method: 'POST',
+                    credentials: 'include',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload),
+                }).then((r) => r.json());
+                if (out?.ok && out.message) {
+                    render([out.message], true);
+                } else if (out?.error) {
+                    setStatus(out.error);
+                }
+            } catch {
+                setStatus('failed to send');
+            }
+        });
+
+        boot();
+    </script>
+</body>
+</html>

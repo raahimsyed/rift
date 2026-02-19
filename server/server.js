@@ -301,6 +301,19 @@ function getUserSave(db, userId) {
     return save;
 }
 
+function getChatLog(db) {
+    if (!Array.isArray(db.chat)) db.chat = [];
+    return db.chat;
+}
+
+function sanitizeChatText(input) {
+    const text = String(input || '')
+        .replace(/\s+/g, ' ')
+        .trim();
+    if (!text) return '';
+    return text.slice(0, 400);
+}
+
 function safeJsonForInlineScript(value) {
     return JSON.stringify(value)
         .replace(/</g, '\\u003c')
@@ -564,6 +577,51 @@ app.put('/api/save/games/:gameId', async (req, res) => {
         return res.json({ ok: true });
     } catch (error) {
         return jsonError(res, 500, `Game save failed: ${error.message}`);
+    }
+});
+
+app.get('/api/chat/messages', async (req, res) => {
+    try {
+        const auth = await getSessionFromRequest(req);
+        if (!auth) return jsonError(res, 401, 'Unauthorized');
+        const since = Number.parseInt(String(req.query?.since || '0'), 10) || 0;
+        const db = await readAuthDb();
+        const rows = getChatLog(db);
+        const filtered = since > 0 ? rows.filter((m) => Number(m.createdAt) > since) : rows;
+        const messages = filtered.slice(-120);
+        return res.json({ ok: true, messages, now: Date.now() });
+    } catch (error) {
+        return jsonError(res, 500, `Chat read failed: ${error.message}`);
+    }
+});
+
+app.post('/api/chat/messages', async (req, res) => {
+    try {
+        const auth = await getSessionFromRequest(req);
+        if (!auth) return jsonError(res, 401, 'Unauthorized');
+        const text = sanitizeChatText(req.body?.text);
+        if (!text) return jsonError(res, 400, 'Message text required');
+
+        const message = {
+            id: crypto.randomUUID(),
+            userId: auth.user.id,
+            username: auth.user.username,
+            text,
+            createdAt: Date.now(),
+        };
+
+        await updateAuthDb((db) => {
+            const rows = getChatLog(db);
+            rows.push(message);
+            if (rows.length > 500) {
+                db.chat = rows.slice(-500);
+            }
+            return db;
+        });
+
+        return res.json({ ok: true, message });
+    } catch (error) {
+        return jsonError(res, 500, `Chat send failed: ${error.message}`);
     }
 });
 
