@@ -2,8 +2,14 @@
 <html>
     <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Rift Apps</title>
+    
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-W1SEMRGLRR"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', 'G-W1SEMRGLRR');
+    </script><title>Rift Apps</title>
     <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
     <link rel="stylesheet" href="./global/css/global.css">
     </head>
@@ -46,7 +52,7 @@
             </div>
 
         </div>
-    <nav class="bottom-nav">
+            <nav class="bottom-nav">
         <button class="nav-button" onclick="location.href='/'">
             <span class="material-icons">home</span>
         </button>
@@ -56,8 +62,17 @@
         <button class="nav-button" onclick="location.href='/apps'">
             <span class="material-icons">apps</span>
         </button>
+        <button class="nav-button" onclick="location.href='/music'">
+            <span class="material-icons">library_music</span>
+        </button>
+        <button class="nav-button" onclick="location.href='/chat'">
+            <span class="material-icons">forum</span>
+        </button>
         <button class="nav-button" onclick="location.href='/browser'">
             <span class="material-icons">language</span>
+        </button>
+        <button class="nav-button" onclick="location.href='/account'">
+            <span class="material-icons">person</span>
         </button>
         <button class="nav-button" onclick="location.href='/settings'">
             <span class="material-icons">settings</span>

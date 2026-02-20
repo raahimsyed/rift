@@ -1,0 +1,941 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-W1SEMRGLRR"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', 'G-W1SEMRGLRR');
+    </script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rift Music</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+    <link rel="stylesheet" href="./global/css/global.css">
+    <style>
+        body.music-page .container {
+            width: min(98vw, 1320px);
+            max-width: 1320px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        .music-shell {
+            width: min(96vw, 1240px);
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 320px 1fr;
+            gap: 14px;
+            min-height: min(72vh, 760px);
+        }
+        .music-panel {
+            border: 1px solid rgba(255, 255, 255, 0.14);
+            border-radius: 16px;
+            background: rgba(255, 255, 255, 0.04);
+            backdrop-filter: blur(10px);
+            padding: 14px;
+            min-height: 0;
+        }
+        .now-art {
+            width: 100%;
+            aspect-ratio: 1 / 1;
+            border-radius: 14px;
+            overflow: hidden;
+            background: rgba(0, 0, 0, 0.25);
+            border: 1px solid rgba(255,255,255,.12);
+        }
+        .now-art img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+        .now-title {
+            margin-top: 10px;
+            color: #fff;
+            font-size: 13px;
+            line-height: 1.4;
+            word-break: break-word;
+        }
+        .now-artist {
+            margin-top: 4px;
+            color: rgba(255,255,255,.65);
+            font-size: 11px;
+            word-break: break-word;
+        }
+        .seek-wrap {
+            margin-top: 10px;
+            display: grid;
+            gap: 6px;
+        }
+        .seek {
+            width: 100%;
+            accent-color: #a7d8ff;
+        }
+        .seek-time {
+            display: flex;
+            justify-content: space-between;
+            color: rgba(255,255,255,.6);
+            font-size: 10px;
+        }
+        .ctrls {
+            margin-top: 10px;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+        }
+        .library-head {
+            margin-top: 12px;
+            font-size: 11px;
+            color: rgba(255,255,255,.72);
+            text-transform: lowercase;
+            letter-spacing: .08em;
+        }
+        .library-note {
+            margin-top: 6px;
+            font-size: 10px;
+            color: rgba(255,255,255,.56);
+        }
+        .playlist-create {
+            margin-top: 8px;
+            display: grid;
+            grid-template-columns: 1fr 110px auto;
+            gap: 6px;
+        }
+        .mini-list {
+            margin-top: 8px;
+            display: grid;
+            gap: 6px;
+            max-height: 180px;
+            overflow: auto;
+            align-content: start;
+        }
+        .mini-item {
+            border: 1px solid rgba(255,255,255,.12);
+            border-radius: 10px;
+            padding: 7px;
+            background: rgba(255,255,255,.04);
+            display: grid;
+            gap: 6px;
+        }
+        .mini-item.clickable {
+            cursor: pointer;
+        }
+        .mini-item.clickable:hover {
+            border-color: rgba(255,255,255,.32);
+            background: rgba(255,255,255,.08);
+        }
+        .mini-item-top {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+        }
+        .mini-item-title {
+            color: #fff;
+            font-size: 11px;
+            line-height: 1.3;
+            word-break: break-word;
+        }
+        .mini-item-sub {
+            color: rgba(255,255,255,.6);
+            font-size: 10px;
+        }
+        .mini-actions {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+        .mini-btn {
+            border: 1px solid rgba(255,255,255,.2);
+            background: rgba(255,255,255,.08);
+            color: #fff;
+            border-radius: 8px;
+            font-size: 10px;
+            padding: 4px 8px;
+            cursor: pointer;
+            text-transform: lowercase;
+        }
+        .mini-btn.danger {
+            border-color: rgba(255,120,120,.45);
+            color: rgba(255,180,180,.95);
+        }
+        .ctrl-btn {
+            border: 1px solid rgba(255,255,255,.2);
+            background: rgba(255,255,255,.1);
+            color: #fff;
+            border-radius: 10px;
+            height: 40px;
+            cursor: pointer;
+            display: grid;
+            place-items: center;
+        }
+        .ctrl-btn:hover {
+            background: rgba(255,255,255,.16);
+        }
+        .search-form {
+            display: grid;
+            grid-template-columns: minmax(260px, 1fr) 190px 120px auto;
+            gap: 8px;
+        }
+        .music-main-grid {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) minmax(380px, 440px);
+            gap: 16px;
+            min-height: min(62vh, 700px);
+            width: 100%;
+            margin: 0 auto;
+        }
+        .music-search-col {
+            min-width: 0;
+        }
+        .music-library-col {
+            border: 1px solid rgba(255,255,255,.12);
+            border-radius: 12px;
+            background: rgba(255,255,255,.03);
+            padding: 10px;
+            display: grid;
+            align-content: start;
+            gap: 8px;
+            max-height: min(62vh, 700px);
+            overflow: auto;
+            width: 100%;
+            justify-self: center;
+        }
+        .library-search {
+            border-radius: 9px;
+            border: 1px solid rgba(255,255,255,.18);
+            background: rgba(255,255,255,.05);
+            color: #fff;
+            padding: 8px 10px;
+            font-family: "Run", Arial, sans-serif;
+            font-size: 11px;
+            outline: none;
+        }
+        .field {
+            border-radius: 10px;
+            border: 1px solid rgba(255,255,255,.2);
+            background: rgba(255,255,255,.05);
+            color: #fff;
+            padding: 10px 12px;
+            font-family: "Run", Arial, sans-serif;
+            font-size: 12px;
+            outline: none;
+        }
+        .field:focus {
+            border-color: rgba(255,255,255,.38);
+            background: rgba(255,255,255,.09);
+        }
+        .btn {
+            border: 1px solid rgba(255,255,255,.2);
+            background: rgba(255,255,255,.1);
+            color: #fff;
+            border-radius: 10px;
+            padding: 10px 12px;
+            cursor: pointer;
+            font-family: "Run", Arial, sans-serif;
+            font-size: 12px;
+            text-transform: lowercase;
+        }
+        .source {
+            border-radius: 10px;
+            border: 1px solid rgba(255,255,255,.2);
+            background: rgba(255,255,255,.05);
+            color: #fff;
+            padding: 10px 12px;
+            font-family: "Run", Arial, sans-serif;
+            font-size: 12px;
+            outline: none;
+        }
+        .status {
+            margin-top: 8px;
+            color: rgba(255,255,255,.68);
+            font-size: 11px;
+            min-height: 16px;
+        }
+        .results {
+            margin-top: 10px;
+            display: grid;
+            gap: 8px;
+            max-height: min(58vh, 620px);
+            overflow: auto;
+            align-content: start;
+        }
+        .result {
+            border: 1px solid rgba(255,255,255,.12);
+            border-radius: 12px;
+            background: rgba(255,255,255,.04);
+            padding: 9px;
+            display: grid;
+            grid-template-columns: 54px 1fr auto auto auto;
+            gap: 10px;
+            align-items: center;
+        }
+        .result img {
+            width: 54px;
+            height: 54px;
+            border-radius: 10px;
+            object-fit: cover;
+            background: rgba(0,0,0,.35);
+        }
+        .r-title {
+            color: #fff;
+            font-size: 12px;
+            line-height: 1.35;
+            word-break: break-word;
+        }
+        .r-artist {
+            color: rgba(255,255,255,.62);
+            font-size: 10px;
+            margin-top: 3px;
+        }
+        .r-play {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            border: 1px solid rgba(255,255,255,.2);
+            background: rgba(255,255,255,.1);
+            color: #fff;
+            cursor: pointer;
+            display: grid;
+            place-items: center;
+        }
+        .r-act {
+            width: 34px;
+            height: 34px;
+            border-radius: 10px;
+            border: 1px solid rgba(255,255,255,.2);
+            background: rgba(255,255,255,.08);
+            color: #fff;
+            cursor: pointer;
+            display: grid;
+            place-items: center;
+        }
+        .r-act.active {
+            color: #ff9e9e;
+            border-color: rgba(255,160,160,.5);
+        }
+        @media (max-width: 920px) {
+            .music-shell {
+                grid-template-columns: 1fr;
+            }
+            .search-form {
+                grid-template-columns: 1fr;
+            }
+            .playlist-create {
+                grid-template-columns: 1fr;
+            }
+            .music-main-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>rift music</h1>
+            <p class="page-subtitle">search music to get started</p>
+        </header>
+
+        <section class="music-shell">
+            <article class="music-panel">
+                <div class="now-art">
+                    <img id="nowArt" alt="Song artwork">
+                </div>
+                <div id="nowTitle" class="now-title">No track selected</div>
+                <div id="nowArtist" class="now-artist">Search and play a track</div>
+
+                <div class="seek-wrap">
+                    <input id="seekBar" class="seek" type="range" min="0" max="1000" value="0">
+                    <div class="seek-time">
+                        <span id="timeNow">0:00</span>
+                        <span id="timeEnd">0:00</span>
+                    </div>
+                </div>
+
+                <div class="ctrls">
+                    <button id="prevBtn" class="ctrl-btn" type="button" title="Previous">
+                        <span class="material-icons">skip_previous</span>
+                    </button>
+                    <button id="playBtn" class="ctrl-btn" type="button" title="Play/Pause">
+                        <span id="playIcon" class="material-icons">play_arrow</span>
+                    </button>
+                    <button id="nextBtn" class="ctrl-btn" type="button" title="Next">
+                        <span class="material-icons">skip_next</span>
+                    </button>
+                </div>
+            </article>
+
+            <article class="music-panel">
+                <div class="music-main-grid">
+                    <div class="music-search-col">
+                        <form id="searchForm" class="search-form">
+                            <input id="searchInput" class="field" placeholder="search songs/artists" autocomplete="off">
+                            <select id="playlistTargetSelect" class="source" aria-label="Playlist target">
+                                <option value="">add to playlist...</option>
+                            </select>
+                            <select id="sourceSelect" class="source" aria-label="Music source">
+                                <option value="all">all</option>
+                                <option value="audius">audius</option>
+                                <option value="jamendo">jamendo</option>
+                            </select>
+                            <button class="btn" type="submit">search</button>
+                        </form>
+                        <div id="musicStatus" class="status">Search Music to get started</div>
+                        <div id="results" class="results"></div>
+                    </div>
+                    <aside class="music-library-col">
+                        <div class="library-head">favorites + playlists</div>
+                        <div id="libraryNote" class="library-note">Sign in to save favorites and playlists.</div>
+
+                        <div class="library-head">favorites</div>
+                        <input id="favoritesSearch" class="library-search" placeholder="search favorites" autocomplete="off">
+                        <div id="favoritesList" class="mini-list"></div>
+
+                        <div class="library-head">playlists</div>
+                        <div class="playlist-create">
+                            <input id="playlistName" class="field" placeholder="new playlist name" autocomplete="off">
+                            <select id="playlistPrivacy" class="source" aria-label="Playlist privacy">
+                                <option value="public">public</option>
+                                <option value="private">private</option>
+                            </select>
+                            <button id="createPlaylistBtn" class="btn" type="button">create</button>
+                        </div>
+                        <input id="playlistsSearch" class="library-search" placeholder="search playlists" autocomplete="off">
+                        <div id="playlistsList" class="mini-list"></div>
+                    </aside>
+                </div>
+            </article>
+        </section>
+    </div>
+
+        <nav class="bottom-nav">
+        <button class="nav-button" onclick="location.href='/'">
+            <span class="material-icons">home</span>
+        </button>
+        <button class="nav-button" onclick="location.href='/games'">
+            <span class="material-icons">sports_esports</span>
+        </button>
+        <button class="nav-button" onclick="location.href='/apps'">
+            <span class="material-icons">apps</span>
+        </button>
+        <button class="nav-button active" onclick="location.href='/music'">
+            <span class="material-icons">library_music</span>
+        </button>
+        <button class="nav-button" onclick="location.href='/chat'">
+            <span class="material-icons">forum</span>
+        </button>
+        <button class="nav-button" onclick="location.href='/browser'">
+            <span class="material-icons">language</span>
+        </button>
+        <button class="nav-button" onclick="location.href='/account'">
+            <span class="material-icons">person</span>
+        </button>
+        <button class="nav-button" onclick="location.href='/settings'">
+            <span class="material-icons">settings</span>
+        </button>
+        <button class="nav-button" onclick="location.href='/credits'">
+            <span class="material-icons">handshake</span>
+        </button>
+        <button class="nav-button" onclick="location.href='/social-media-&-partners'">
+            <span class="material-icons">connect_without_contact</span>
+        </button>
+    </nav>
+
+    <script>
+        document.body.classList.add('music-page');
+        document.body.classList.add('nav-pos-' + (localStorage.getItem('rift__nav-position') || 'bottom'));
+    </script>
+    <script src="./global/js/global.js"></script>
+    <script src="/components/cloaker.js"></script>
+    <script src="/components/overlay.js"></script>
+    <script src="/components/components.js"></script>
+    <script src="/components/404.js"></script>
+    <script>
+        const searchForm = document.getElementById('searchForm');
+        const searchInput = document.getElementById('searchInput');
+        const sourceSelect = document.getElementById('sourceSelect');
+        const statusEl = document.getElementById('musicStatus');
+        const resultsEl = document.getElementById('results');
+        const nowArt = document.getElementById('nowArt');
+        const nowTitle = document.getElementById('nowTitle');
+        const nowArtist = document.getElementById('nowArtist');
+        const seekBar = document.getElementById('seekBar');
+        const timeNow = document.getElementById('timeNow');
+        const timeEnd = document.getElementById('timeEnd');
+        const playBtn = document.getElementById('playBtn');
+        const playIcon = document.getElementById('playIcon');
+        const prevBtn = document.getElementById('prevBtn');
+        const nextBtn = document.getElementById('nextBtn');
+        const libraryNote = document.getElementById('libraryNote');
+        const favoritesList = document.getElementById('favoritesList');
+        const playlistsList = document.getElementById('playlistsList');
+        const favoritesSearch = document.getElementById('favoritesSearch');
+        const playlistsSearch = document.getElementById('playlistsSearch');
+        const playlistName = document.getElementById('playlistName');
+        const playlistPrivacy = document.getElementById('playlistPrivacy');
+        const createPlaylistBtn = document.getElementById('createPlaylistBtn');
+        const playlistTargetSelect = document.getElementById('playlistTargetSelect');
+        const mini = window.RiftMiniPlayer;
+
+        const state = {
+            tracks: [],
+            currentIndex: -1,
+            seeking: false,
+            authenticated: false,
+            favorites: [],
+            playlists: [],
+        };
+
+        function fmtTime(seconds) {
+            if (!Number.isFinite(seconds) || seconds < 0) return '0:00';
+            const s = Math.floor(seconds % 60);
+            const m = Math.floor(seconds / 60);
+            return `${m}:${String(s).padStart(2, '0')}`;
+        }
+
+        function setStatus(text) {
+            statusEl.textContent = text || '';
+        }
+
+        function escapeHtml(text) {
+            return String(text || '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
+        function trackKey(track) {
+            const provider = String(track?.provider || '').trim().toLowerCase();
+            const id = String(track?.id || '').trim();
+            if (!provider || !id) return '';
+            return `${provider}:${id}`;
+        }
+
+        function favoriteKeys() {
+            return new Set(state.favorites.map((track) => trackKey(track)).filter(Boolean));
+        }
+
+        function findPlaylist(playlistId) {
+            return state.playlists.find((entry) => entry.id === playlistId) || null;
+        }
+
+        async function apiJson(url, options = {}) {
+            const res = await fetch(url, { credentials: 'include', ...options });
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok || !data?.ok) {
+                throw new Error(data?.error || `request failed (${res.status})`);
+            }
+            return data;
+        }
+
+        async function refreshLibrary() {
+            if (!state.authenticated) {
+                state.favorites = [];
+                state.playlists = [];
+                renderLibrary();
+                return;
+            }
+            try {
+                const data = await apiJson('/api/music/library');
+                state.favorites = Array.isArray(data.favorites) ? data.favorites : [];
+                state.playlists = Array.isArray(data.playlists) ? data.playlists : [];
+            } catch (error) {
+                setStatus(error.message || 'library load failed');
+            }
+            renderLibrary();
+            renderResults();
+        }
+
+        async function checkAuth() {
+            try {
+                const res = await fetch('/api/auth/me', { credentials: 'include' });
+                const data = await res.json().catch(() => ({}));
+                state.authenticated = Boolean(data?.authenticated);
+            } catch {
+                state.authenticated = false;
+            }
+            libraryNote.textContent = state.authenticated
+                ? 'favorites and playlists are saved to your account.'
+                : 'sign in from account page to save favorites/playlists.';
+        }
+
+        function renderPlaylistTargetOptions() {
+            const current = playlistTargetSelect.value;
+            const options = ['<option value="">add to playlist...</option>'];
+            for (const playlist of state.playlists) {
+                options.push(
+                    `<option value="${escapeHtml(playlist.id)}">${escapeHtml(playlist.name)}${playlist.isPrivate ? ' (private)' : ''}</option>`
+                );
+            }
+            playlistTargetSelect.innerHTML = options.join('');
+            if (state.playlists.some((playlist) => playlist.id === current)) {
+                playlistTargetSelect.value = current;
+            }
+        }
+
+        function renderLibrary() {
+            renderPlaylistTargetOptions();
+            const favQuery = String(favoritesSearch?.value || '').trim().toLowerCase();
+            const playlistQuery = String(playlistsSearch?.value || '').trim().toLowerCase();
+
+            if (!state.authenticated) {
+                favoritesList.innerHTML = '<div class="mini-item-sub">Sign in to view favorites.</div>';
+                playlistsList.innerHTML = '<div class="mini-item-sub">Sign in to create playlists.</div>';
+                return;
+            }
+
+            const renderedFavorites = state.favorites.filter((track) => {
+                if (!favQuery) return true;
+                const hay = `${track.title || ''} ${track.artist || ''} ${track.provider || ''}`.toLowerCase();
+                return hay.includes(favQuery);
+            });
+
+            if (!renderedFavorites.length) {
+                favoritesList.innerHTML = `<div class="mini-item-sub">${favQuery ? 'No favorites match your search.' : 'No favorites yet.'}</div>`;
+            } else {
+                favoritesList.innerHTML = renderedFavorites.slice(0, 40).map((track, i) => `
+                    <article class="mini-item">
+                        <div class="mini-item-top">
+                            <div class="mini-item-title">${escapeHtml(track.title)}</div>
+                            <button class="mini-btn danger" type="button" data-fav-remove="${i}">unfavorite</button>
+                        </div>
+                        <div class="mini-item-sub">${escapeHtml(track.artist)}${track.provider ? ` · ${escapeHtml(track.provider)}` : ''}</div>
+                        <div class="mini-actions">
+                            <button class="mini-btn" type="button" data-fav-play="${i}">play</button>
+                        </div>
+                    </article>
+                `).join('');
+            }
+
+            const renderedPlaylists = state.playlists.filter((playlist) => {
+                if (!playlistQuery) return true;
+                const hay = `${playlist.name || ''} ${playlist.ownerUsername || ''}`.toLowerCase();
+                return hay.includes(playlistQuery);
+            });
+
+            if (!renderedPlaylists.length) {
+                playlistsList.innerHTML = `<div class="mini-item-sub">${playlistQuery ? 'No playlists match your search.' : 'No playlists yet.'}</div>`;
+            } else {
+                playlistsList.innerHTML = renderedPlaylists.map((playlist, i) => `
+                    <article class="mini-item clickable" data-playlist-open="${i}">
+                        <div class="mini-item-top">
+                            <div class="mini-item-title">${escapeHtml(playlist.name)}</div>
+                            <button class="mini-btn danger" type="button" data-playlist-delete="${escapeHtml(playlist.id)}">delete</button>
+                        </div>
+                        <div class="mini-item-sub">${playlist.isPrivate ? 'private' : 'public'} · ${Number(playlist.trackCount || 0)} tracks</div>
+                        <div class="mini-item-sub">click to open in search results</div>
+                    </article>
+                `).join('');
+            }
+
+            favoritesList.querySelectorAll('[data-fav-play]').forEach((btn) => {
+                btn.addEventListener('click', async () => {
+                    const index = Number(btn.getAttribute('data-fav-play'));
+                    const track = renderedFavorites[index];
+                    if (!track) return;
+                    state.tracks = renderedFavorites.slice();
+                    renderResults();
+                    await playIndex(index);
+                });
+            });
+
+            favoritesList.querySelectorAll('[data-fav-remove]').forEach((btn) => {
+                btn.addEventListener('click', async () => {
+                    const index = Number(btn.getAttribute('data-fav-remove'));
+                    const track = renderedFavorites[index];
+                    if (!track) return;
+                    await setFavorite(track, false);
+                });
+            });
+
+            playlistsList.querySelectorAll('[data-playlist-open]').forEach((card) => {
+                card.addEventListener('click', () => {
+                    const idx = Number(card.getAttribute('data-playlist-open'));
+                    const playlist = renderedPlaylists[idx];
+                    if (!playlist) return;
+                    state.tracks = Array.isArray(playlist.tracks) ? playlist.tracks.slice() : [];
+                    state.currentIndex = -1;
+                    renderResults();
+                    setStatus(`Loaded playlist: ${playlist.name}`);
+                });
+            });
+
+            playlistsList.querySelectorAll('[data-playlist-delete]').forEach((btn) => {
+                btn.addEventListener('click', async (event) => {
+                    event.stopPropagation();
+                    const playlistId = btn.getAttribute('data-playlist-delete');
+                    if (!playlistId) return;
+                    try {
+                        await apiJson(`/api/music/playlists/${encodeURIComponent(playlistId)}`, { method: 'DELETE' });
+                        await refreshLibrary();
+                        setStatus('Playlist deleted.');
+                    } catch (error) {
+                        setStatus(error.message || 'delete failed');
+                    }
+                });
+            });
+        }
+
+        function renderResults() {
+            if (!state.tracks.length) {
+                resultsEl.innerHTML = '';
+                return;
+            }
+            const favoriteSet = favoriteKeys();
+            resultsEl.innerHTML = state.tracks.map((track, i) => {
+                const key = trackKey(track);
+                const isFav = key && favoriteSet.has(key);
+                return `
+                    <article class="result">
+                        <img src="${escapeHtml(track.artwork || '/favicon.ico')}" alt="">
+                        <div>
+                            <div class="r-title">${escapeHtml(track.title)}</div>
+                            <div class="r-artist">${escapeHtml(track.artist)}${track.provider ? ` · ${escapeHtml(track.provider)}` : ''}</div>
+                        </div>
+                        <button class="r-act" type="button" data-add-index="${i}" title="add to playlist">
+                            <span class="material-icons">playlist_add</span>
+                        </button>
+                        <button class="r-act ${isFav ? 'active' : ''}" type="button" data-fav-index="${i}" title="favorite">
+                            <span class="material-icons">favorite</span>
+                        </button>
+                        <button class="r-play" type="button" data-index="${i}">
+                            <span class="material-icons">play_arrow</span>
+                        </button>
+                    </article>
+                `;
+            }).join('');
+
+            resultsEl.querySelectorAll('.r-play').forEach((btn) => {
+                btn.addEventListener('click', async () => {
+                    const i = Number(btn.getAttribute('data-index'));
+                    if (!Number.isFinite(i)) return;
+                    await playIndex(i);
+                });
+            });
+
+            resultsEl.querySelectorAll('[data-fav-index]').forEach((btn) => {
+                btn.addEventListener('click', async () => {
+                    const i = Number(btn.getAttribute('data-fav-index'));
+                    const track = state.tracks[i];
+                    if (!track) return;
+                    const key = trackKey(track);
+                    const isFav = favoriteKeys().has(key);
+                    await setFavorite(track, !isFav);
+                });
+            });
+
+            resultsEl.querySelectorAll('[data-add-index]').forEach((btn) => {
+                btn.addEventListener('click', async () => {
+                    const i = Number(btn.getAttribute('data-add-index'));
+                    const track = state.tracks[i];
+                    if (!track) return;
+                    await addTrackToSelectedPlaylist(track);
+                });
+            });
+        }
+
+        async function setFavorite(track, isFavorite) {
+            if (!state.authenticated) {
+                setStatus('Sign in to favorite songs.');
+                return;
+            }
+            try {
+                const data = await apiJson('/api/music/favorites', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ track, isFavorite }),
+                });
+                state.favorites = Array.isArray(data.favorites) ? data.favorites : state.favorites;
+                renderLibrary();
+                renderResults();
+                setStatus(data.isFavorite ? 'Added to favorites.' : 'Removed from favorites.');
+            } catch (error) {
+                setStatus(error.message || 'favorite update failed');
+            }
+        }
+
+        async function addTrackToSelectedPlaylist(track) {
+            if (!state.authenticated) {
+                setStatus('Sign in to use playlists.');
+                return;
+            }
+            const playlistId = String(playlistTargetSelect.value || '').trim();
+            if (!playlistId) {
+                setStatus('Select a playlist first.');
+                return;
+            }
+            try {
+                await apiJson(`/api/music/playlists/${encodeURIComponent(playlistId)}/tracks`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ track }),
+                });
+                await refreshLibrary();
+                const playlist = findPlaylist(playlistId);
+                setStatus(`Added to playlist: ${playlist?.name || 'playlist'}`);
+            } catch (error) {
+                setStatus(error.message || 'playlist add failed');
+            }
+        }
+
+        function updateNowPlaying(track) {
+            if (!track) {
+                nowArt.src = '/favicon.ico';
+                nowTitle.textContent = 'No track selected';
+                nowArtist.textContent = 'Search and play a track';
+                timeNow.textContent = '0:00';
+                timeEnd.textContent = '0:00';
+                return;
+            }
+            nowArt.src = track.artwork || '/favicon.ico';
+            nowTitle.textContent = track.title || 'Untitled';
+            nowArtist.textContent = track.artist || 'Unknown artist';
+        }
+
+        async function playIndex(index) {
+            const track = state.tracks[index];
+            if (!track) return;
+            state.currentIndex = index;
+            updateNowPlaying(track);
+            setStatus(`Loading ${track.title}...`);
+            try {
+                if (!mini) throw new Error('music player unavailable');
+                mini.setQueue(state.tracks, index, true);
+                setStatus(`Now playing: ${track.title}`);
+            } catch (error) {
+                playIcon.textContent = 'play_arrow';
+                setStatus(error.message || 'failed to play track');
+            }
+        }
+
+        async function doSearch(query) {
+            const normalized = String(query || '').trim().toLowerCase();
+            if (!normalized) {
+                setStatus('Type something to search.');
+                return;
+            }
+            const source = String(sourceSelect?.value || 'all').toLowerCase();
+            setStatus('Searching...');
+            try {
+                const data = await apiJson(`/api/music/search?q=${encodeURIComponent(normalized)}&source=${encodeURIComponent(source)}`);
+                state.tracks = Array.isArray(data.tracks) ? data.tracks : [];
+                renderResults();
+                const warn = Array.isArray(data.warnings) && data.warnings.length ? ` (${data.warnings.join(' | ')})` : '';
+                setStatus(state.tracks.length ? `Found ${state.tracks.length} tracks.${warn}` : `No playable tracks found.${warn}`);
+            } catch (error) {
+                setStatus(error.message || 'search failed');
+            }
+        }
+
+        searchForm.addEventListener('submit', async (event) => {
+            event.preventDefault();
+            await doSearch(searchInput.value);
+        });
+
+        favoritesSearch?.addEventListener('input', () => {
+            renderLibrary();
+        });
+
+        playlistsSearch?.addEventListener('input', () => {
+            renderLibrary();
+        });
+
+        createPlaylistBtn.addEventListener('click', async () => {
+            if (!state.authenticated) {
+                setStatus('Sign in to create playlists.');
+                return;
+            }
+            const name = String(playlistName.value || '').trim();
+            if (!name) {
+                setStatus('Playlist name is required.');
+                return;
+            }
+            try {
+                const isPrivate = String(playlistPrivacy.value || 'public') === 'private';
+                const data = await apiJson('/api/music/playlists', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, isPrivate }),
+                });
+                playlistName.value = '';
+                await refreshLibrary();
+                playlistTargetSelect.value = data?.playlist?.id || '';
+                setStatus(`Playlist created: ${data?.playlist?.name || name}`);
+            } catch (error) {
+                setStatus(error.message || 'playlist create failed');
+            }
+        });
+
+        playlistTargetSelect.addEventListener('change', () => {
+            const selected = String(playlistTargetSelect.value || '').trim();
+            if (!selected) return;
+            const playlist = findPlaylist(selected);
+            if (!playlist) return;
+            setStatus(`Selected playlist: ${playlist.name}`);
+        });
+
+        playBtn.addEventListener('click', async () => {
+            if (!mini) return;
+            const miniState = mini.getState();
+            if ((miniState?.currentIndex ?? -1) < 0) {
+                if (state.tracks.length) await playIndex(0);
+                return;
+            }
+            await mini.toggle();
+        });
+
+        prevBtn.addEventListener('click', async () => {
+            if (!mini) return;
+            await mini.prev();
+        });
+
+        nextBtn.addEventListener('click', async () => {
+            if (!mini) return;
+            await mini.next();
+        });
+
+        seekBar.addEventListener('input', () => {
+            state.seeking = true;
+            if (!mini) return;
+            const miniState = mini.getState();
+            const duration = Number(miniState?.duration || 0);
+            if (!Number.isFinite(duration) || duration <= 0) return;
+            const pct = Number(seekBar.value) / 1000;
+            timeNow.textContent = fmtTime(duration * pct);
+        });
+
+        seekBar.addEventListener('change', () => {
+            if (mini) mini.seekRatio(Number(seekBar.value) / 1000);
+            state.seeking = false;
+        });
+
+        function syncFromMini() {
+            if (!mini) return;
+            const miniState = mini.getState();
+            const track = miniState?.track || null;
+            updateNowPlaying(track);
+            const currentTime = Number(miniState?.currentTime || 0);
+            const duration = Number(miniState?.duration || 0);
+            if (!state.seeking && Number.isFinite(duration) && duration > 0) {
+                const pct = Math.max(0, Math.min(1, currentTime / duration));
+                seekBar.value = String(Math.round(pct * 1000));
+            }
+            timeNow.textContent = fmtTime(currentTime);
+            timeEnd.textContent = fmtTime(duration);
+            playIcon.textContent = miniState?.isPlaying ? 'pause' : 'play_arrow';
+        }
+
+        window.addEventListener((mini && mini.updateEvent) || 'rift-mini-player-update', syncFromMini);
+
+        (async () => {
+            await checkAuth();
+            await refreshLibrary();
+            syncFromMini();
+        })();
+    </script>
+</body>
+</html>

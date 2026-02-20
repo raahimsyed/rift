@@ -2,104 +2,79 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-W1SEMRGLRR"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', 'G-W1SEMRGLRR');
+    </script><meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Rift Browser</title>
     <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
     <link rel="stylesheet" href="./global/css/global.css">
-    <link rel="stylesheet" href="./index.css">
 </head>
 <body class="browser-page">
-    <div class="container">
     <div class="container browser-container">
-        <header>
-            <h1>rift</h1>
-            <p class="page-subtitle">private browsing powered by scramjet</p>
-        </header>
-
-        <div class="tab-rail">
-            <div class="tab active">
-                <span class="material-icons">tab</span>
-                <span>session 1</span>
-            </div>
-            <div class="tab ghost">
-                <span class="material-icons">add</span>
-                <span>new session</span>
-            </div>
-        </div>
-
-        <div class="address-bar">
-            <div class="nav-cluster">
-                <button class="nav-btn" id="back-btn" title="Back" type="button">
-                    <span class="material-icons">chevron_left</span>
-                </button>
-                <button class="nav-btn" id="forward-btn" title="Forward" type="button">
-                    <span class="material-icons">chevron_right</span>
-                </button>
-                <button class="nav-btn" id="refresh-btn" title="Refresh" type="button">
-                    <span class="material-icons">refresh</span>
-                </button>
-            </div>
-
-            <form id="sj-form" class="address-form" autocomplete="off">
-                <input id="sj-search-engine" value="https://duckduckgo.com/?q=%s" type="hidden" />
-                <input id="sj-address" type="text" placeholder="enter a url or search" autocomplete="off" />
-            </form>
-
-            <div class="nav-cluster">
-                <button class="nav-btn" id="home-btn" title="Home" type="button">
-                    <span class="material-icons">home</span>
-                </button>
-            </div>
-        </div>
-
-        <div class="browser-frame">
-            <iframe id="sj-frame" title="Rift session"></iframe>
-            <div class="browser-empty" id="browser-empty">
-                <span class="material-icons">language</span>
-                <p>Type a destination to start a Rift session.</p>
-            </div>
-        </div>
-
-        <div class="browser-feedback">
-            <p id="sj-error" aria-live="polite"></p>
-            <pre id="sj-error-code"></pre>
-        </div>
-
         <section class="browser-shell" aria-label="Rift browser">
-            <form id="browser-form" class="browser-toolbar" autocomplete="off">
-                <button type="button" id="browser-back" class="browser-icon-btn" aria-label="Go back">
-                    <span class="material-icons">arrow_back</span>
-                </button>
-                <button type="button" id="browser-forward" class="browser-icon-btn" aria-label="Go forward">
-                    <span class="material-icons">arrow_forward</span>
-                </button>
-                <button type="button" id="browser-reload" class="browser-icon-btn" aria-label="Reload page">
-                    <span class="material-icons">refresh</span>
-                </button>
-                <input
-                    id="browser-input"
-                    type="text"
-                    name="url"
-                    placeholder="Search or enter URL"
-                    aria-label="Search or enter URL"
-                >
-                <button type="submit" id="browser-go" class="browser-go-btn">Go</button>
-            </form>
+            <aside class="browser-side-panel">
+                <div class="browser-corner">
+                    <div id="browser-loading" class="browser-loading" aria-label="Loading" title="Loading"></div>
+                </div>
 
-            <div class="browser-status" id="browser-status" aria-live="polite"></div>
+                <div class="browser-side-main">
+                    <div class="browser-side-nav">
+                        <button type="button" id="browser-back" class="nav-button browser-side-btn" aria-label="Go back" title="Back">
+                            <span class="material-icons">arrow_back</span>
+                        </button>
+                        <button type="button" id="browser-forward" class="nav-button browser-side-btn" aria-label="Go forward" title="Forward">
+                            <span class="material-icons">arrow_forward</span>
+                        </button>
+                    <button type="button" id="browser-reload" class="nav-button browser-side-btn" aria-label="Reload page" title="Reload">
+                        <span class="material-icons">refresh</span>
+                    </button>
+                    <button type="button" id="browser-more" class="nav-button browser-side-btn" aria-label="More actions" title="More">
+                        <span class="material-icons">more_horiz</span>
+                    </button>
+                </div>
+                    <div id="browser-more-menu" class="browser-more-menu" hidden>
+                        <button type="button" id="browser-popout" class="browser-more-item" aria-label="Pop out current tab">
+                            <span class="material-icons">open_in_new</span>
+                            <span>Pop out</span>
+                        </button>
+                    </div>
+                    <div id="panel-switcher" class="browser-panel-switcher" aria-label="Panels"></div>
+                </div>
+            </aside>
 
-            <iframe
-                id="browser-frame"
-                title="Rift Browser Viewer"
-                src="/proxy?url=https%3A%2F%2Fexample.com"
-                loading="eager"
-                referrerpolicy="no-referrer"
-            ></iframe>
+            <div class="browser-view">
+                <form id="browser-form" class="browser-toolbar browser-topbar" autocomplete="off" onsubmit="return false;">
+                    <input
+                        id="browser-input"
+                        type="text"
+                        placeholder="Search or enter URL"
+                        aria-label="Search or enter URL"
+                    >
+                    <button type="submit" id="browser-go" class="browser-go-btn">Go</button>
+                </form>
+
+                <div id="browser-home" class="browser-home">
+                    <h2>rift browser</h2>
+                    <p>search a url above to begin your session</p>
+                </div>
+
+                <iframe
+                    id="browser-frame"
+                    title="Rift Browser Viewer"
+                    src="about:blank"
+                    loading="eager"
+                    referrerpolicy="strict-origin-when-cross-origin"
+                ></iframe>
+            </div>
         </section>
-
     </div>
 
-    <nav class="bottom-nav">
+            <nav class="bottom-nav">
         <button class="nav-button" onclick="location.href='/'">
             <span class="material-icons">home</span>
         </button>
@@ -109,8 +84,17 @@
         <button class="nav-button" onclick="location.href='/apps'">
             <span class="material-icons">apps</span>
         </button>
+        <button class="nav-button" onclick="location.href='/music'">
+            <span class="material-icons">library_music</span>
+        </button>
+        <button class="nav-button" onclick="location.href='/chat'">
+            <span class="material-icons">forum</span>
+        </button>
         <button class="nav-button active" onclick="location.href='/browser'">
             <span class="material-icons">language</span>
+        </button>
+        <button class="nav-button" onclick="location.href='/account'">
+            <span class="material-icons">person</span>
         </button>
         <button class="nav-button" onclick="location.href='/settings'">
             <span class="material-icons">settings</span>
@@ -134,29 +118,36 @@
     <script src="/components/games.js"></script>
     <script src="/components/components.js"></script>
     <script src="/components/404.js"></script>
-
-    <script src="/scramjet/scramjet.codecs.js" defer></script>
-    <script src="/scramjet/scramjet.config.js" defer></script>
-    <script src="/scramjet/scramjet.bundle.js" defer></script>
-    <script src="/baremux/index.js" defer></script>
-    <script src="/register-sw.js" defer></script>
-    <script src="/search.js" defer></script>
-    <script src="/index.js" defer></script>
+    <script src="/register-sw.js"></script>
+    <script src="/baremux/index.js"></script>
+    <script src="/scramjet/scramjet.codecs.js"></script>
+    <script src="/scramjet/scramjet.config.js"></script>
+    <script src="/scramjet/scramjet.bundle.js"></script>
 
     <script>
-        (() => {
+        (async () => {
             const form = document.getElementById('browser-form');
             const input = document.getElementById('browser-input');
             const frame = document.getElementById('browser-frame');
-            const status = document.getElementById('browser-status');
+            const loading = document.getElementById('browser-loading');
             const back = document.getElementById('browser-back');
             const forward = document.getElementById('browser-forward');
             const reload = document.getElementById('browser-reload');
+            const more = document.getElementById('browser-more');
+            const moreMenu = document.getElementById('browser-more-menu');
+            const popout = document.getElementById('browser-popout');
+            const panelSwitcher = document.getElementById('panel-switcher');
+            const HOME_TARGET = 'about:blank';
+            let proxyMode = 'scramjet';
+            const connection = window.BareMux?.BareMuxConnection
+                ? new BareMux.BareMuxConnection('/baremux/worker.js')
+                : null;
 
-            if (!form || !input || !frame || !status || !back || !forward || !reload) return;
+            if (!form || !input || !frame || !back || !forward || !reload || !more || !moreMenu || !popout || !panelSwitcher) return;
 
-            const history = [];
-            let historyIndex = -1;
+            const MAX_PANELS = 3;
+            const panels = [{ history: [], historyIndex: -1 }];
+            let activePanel = 0;
 
             function toTarget(value) {
                 const trimmed = value.trim();
@@ -174,62 +165,324 @@
             }
 
             function updateButtons() {
-                back.disabled = historyIndex <= 0;
-                forward.disabled = historyIndex >= history.length - 1;
+                const panel = panels[activePanel];
+                back.disabled = panel.historyIndex <= 0;
+                forward.disabled = panel.historyIndex >= panel.history.length - 1;
             }
 
-            function setStatus(message) {
-                status.textContent = message;
+            function closeMoreMenu() {
+                moreMenu.hidden = true;
+            }
+
+            function setLoading(active) {
+                if (!loading) return;
+                loading.classList.toggle('active', !!active);
+            }
+
+            async function ensureTransport() {
+                if (!connection) return;
+                const wispUrl =
+                    (location.protocol === 'https:' ? 'wss' : 'ws') +
+                    '://' +
+                    location.host +
+                    '/wisp/';
+                await connection.setTransport('/libcurl/index.mjs', [{ websocket: wispUrl }]);
+            }
+
+            async function testWispSocket(timeoutMs = 1500) {
+                const wispUrl =
+                    (location.protocol === 'https:' ? 'wss' : 'ws') +
+                    '://' +
+                    location.host +
+                    '/wisp/';
+
+                return await new Promise((resolve) => {
+                    let settled = false;
+                    const socket = new WebSocket(wispUrl);
+                    const finish = (ok) => {
+                        if (settled) return;
+                        settled = true;
+                        clearTimeout(timer);
+                        try { socket.close(); } catch {}
+                        resolve(ok);
+                    };
+                    const timer = setTimeout(() => finish(false), timeoutMs);
+                    socket.addEventListener('open', () => finish(true), { once: true });
+                    socket.addEventListener('error', () => finish(false), { once: true });
+                    socket.addEventListener('close', () => { if (!settled) finish(false); }, { once: true });
+                });
+            }
+
+            async function ensureScramjetReady() {
+                if (proxyMode !== 'scramjet') return;
+                try {
+                    if (typeof registerSW === 'function') await registerSW();
+                    await ensureTransport();
+                    const wispAvailable = await testWispSocket();
+                    if (!wispAvailable) proxyMode = 'proxy';
+                } catch {
+                    proxyMode = 'proxy';
+                }
+            }
+
+            function encodeTarget(targetUrl) {
+                const encoder = self.__scramjet$bundle?.rewriters?.url?.encodeUrl;
+                if (!encoder) return null;
+                const base = window.location.origin;
+                try {
+                    return encoder(targetUrl, base);
+                } catch {
+                    return null;
+                }
+            }
+
+            function shouldForcePlainProxy(targetUrl) {
+                try {
+                    const u = new URL(targetUrl, window.location.origin);
+                    const host = (u.hostname || '').toLowerCase();
+                    return host === 'websitesball.com' || host.endsWith('.websitesball.com');
+                } catch {
+                    return false;
+                }
+            }
+
+            function shouldOpenDirect(targetUrl) {
+                try {
+                    const u = new URL(targetUrl, window.location.origin);
+                    const host = (u.hostname || '').toLowerCase();
+                    return (
+                        host === 'now.gg' ||
+                        host.endsWith('.now.gg') ||
+                        host === 'websitesball.com' ||
+                        host.endsWith('.websitesball.com')
+                    );
+                } catch {
+                    return false;
+                }
+            }
+
+            function normalizeKnownMirrorTarget(targetUrl) {
+                try {
+                    const u = new URL(targetUrl, window.location.origin);
+                    const host = (u.hostname || '').toLowerCase();
+                    const path = (u.pathname || '').toLowerCase();
+                    // Roblox app 19900 currently works on websitesball mirror for this deployment.
+                    if ((host === 'now.gg' || host.endsWith('.now.gg')) && path === '/apps/a/19900/b.html') {
+                        u.hostname = 'websitesball.com';
+                        return u.toString();
+                    }
+                } catch {}
+                return targetUrl;
+            }
+
+            function buildProxyUrl(targetUrl) {
+                try {
+                    const u = new URL(targetUrl, window.location.origin);
+                    if (u.origin === 'https://velara.my' && u.pathname.startsWith('/astra')) {
+                        return u.href;
+                    }
+                    if (u.origin === window.location.origin && (u.pathname.startsWith('/astra') || u.pathname.startsWith('/astra-accounts'))) {
+                        return u.pathname + (u.search || '');
+                    }
+                } catch {}
+
+                if (shouldForcePlainProxy(targetUrl)) {
+                    return `/proxy?url=${encodeURIComponent(targetUrl)}`;
+                }
+
+                if (proxyMode === 'scramjet') {
+                    const encoded = encodeTarget(targetUrl);
+                    if (encoded) return encoded;
+                }
+                return `/proxy?url=${encodeURIComponent(targetUrl)}`;
             }
 
             function loadTarget(targetUrl, pushHistory = true) {
                 if (!targetUrl) {
-                    setStatus('Enter a URL or search term to browse.');
                     return;
                 }
+                const resolvedTarget = normalizeKnownMirrorTarget(targetUrl);
+                const panel = panels[activePanel];
 
-                const proxyUrl = `/proxy?url=${encodeURIComponent(targetUrl)}`;
-                frame.src = proxyUrl;
-                input.value = targetUrl;
-                setStatus(`Loading ${targetUrl}`);
+                const isBlank = resolvedTarget === 'about:blank';
+                if (isBlank) {
+                    frame.src = 'about:blank';
+                    input.value = '';
+                    setLoading(false);
+                    document.getElementById('browser-home')?.classList.add('active');
+                } else {
+                    if (shouldOpenDirect(resolvedTarget)) {
+                        const popup = window.open(resolvedTarget, '_blank', 'noopener,noreferrer');
+                        if (!popup) {
+                            window.location.assign(resolvedTarget);
+                        }
+                        input.value = resolvedTarget;
+                        setLoading(false);
+                        document.getElementById('browser-home')?.classList.remove('active');
+                    } else {
+                    frame.src = buildProxyUrl(resolvedTarget);
+                    input.value = resolvedTarget;
+                    setLoading(true);
+                    document.getElementById('browser-home')?.classList.remove('active');
+                    }
+                }
 
                 if (pushHistory) {
-                    history.splice(historyIndex + 1);
-                    history.push(targetUrl);
-                    historyIndex = history.length - 1;
+                    panel.history.splice(panel.historyIndex + 1);
+                    panel.history.push(resolvedTarget);
+                    panel.historyIndex = panel.history.length - 1;
                 }
 
                 updateButtons();
             }
 
+            function renderPanelSwitcher() {
+                panelSwitcher.innerHTML = '';
+
+                panels.forEach((_, index) => {
+                    const btn = document.createElement('button');
+                    btn.type = 'button';
+                    btn.className = 'browser-panel-btn' + (index === activePanel ? ' active' : '');
+                    btn.setAttribute('aria-label', `Panel ${index + 1}`);
+                    btn.title = `Panel ${index + 1}`;
+                    btn.innerHTML = `<span class="material-icons">web_asset</span><span class="panel-number">${index + 1}</span>`;
+                    btn.addEventListener('click', () => {
+                        if (index === activePanel) return;
+                        activePanel = index;
+                        const panel = panels[activePanel];
+                        const current = panel.history[panel.historyIndex] || HOME_TARGET;
+                        loadTarget(current, false);
+                        renderPanelSwitcher();
+                    });
+
+                    if (panels.length > 1) {
+                        const closeBtn = document.createElement('button');
+                        closeBtn.type = 'button';
+                        closeBtn.className = 'panel-close-btn';
+                        closeBtn.setAttribute('aria-label', `Close panel ${index + 1}`);
+                        closeBtn.title = `Close panel ${index + 1}`;
+                        closeBtn.innerHTML = '<span class="material-icons">close</span>';
+                        closeBtn.addEventListener('click', (event) => {
+                            event.stopPropagation();
+                            panels.splice(index, 1);
+                            if (activePanel >= panels.length) activePanel = panels.length - 1;
+                            if (activePanel > index) activePanel -= 1;
+                            const panel = panels[activePanel];
+                            const current = panel.history[panel.historyIndex] || HOME_TARGET;
+                            loadTarget(current, false);
+                            renderPanelSwitcher();
+                        });
+                        btn.appendChild(closeBtn);
+                    }
+
+                    panelSwitcher.appendChild(btn);
+                });
+
+                if (panels.length < MAX_PANELS) {
+                    const addBtn = document.createElement('button');
+                    addBtn.type = 'button';
+                    addBtn.className = 'browser-panel-btn add';
+                    addBtn.setAttribute('aria-label', 'Add panel');
+                    addBtn.title = 'Add panel';
+                    addBtn.innerHTML = '<span class="material-icons">add</span>';
+                    addBtn.addEventListener('click', () => {
+                        panels.push({ history: [], historyIndex: -1 });
+                        activePanel = panels.length - 1;
+                        loadTarget(HOME_TARGET, true);
+                        renderPanelSwitcher();
+                    });
+                    panelSwitcher.appendChild(addBtn);
+                }
+            }
+
             form.addEventListener('submit', (event) => {
                 event.preventDefault();
                 const target = toTarget(input.value);
-                loadTarget(target, true);
+                (async () => {
+                    if (target && !shouldForcePlainProxy(target) && !shouldOpenDirect(target)) {
+                        await ensureScramjetReady();
+                    }
+                    loadTarget(target, true);
+                })();
             });
 
             back.addEventListener('click', () => {
-                if (historyIndex <= 0) return;
-                historyIndex -= 1;
-                loadTarget(history[historyIndex], false);
+                const panel = panels[activePanel];
+                if (panel.historyIndex <= 0) return;
+                panel.historyIndex -= 1;
+                loadTarget(panel.history[panel.historyIndex], false);
             });
 
             forward.addEventListener('click', () => {
-                if (historyIndex >= history.length - 1) return;
-                historyIndex += 1;
-                loadTarget(history[historyIndex], false);
+                const panel = panels[activePanel];
+                if (panel.historyIndex >= panel.history.length - 1) return;
+                panel.historyIndex += 1;
+                loadTarget(panel.history[panel.historyIndex], false);
             });
 
             reload.addEventListener('click', () => {
-                if (historyIndex < 0) return;
-                loadTarget(history[historyIndex], false);
+                const panel = panels[activePanel];
+                if (panel.historyIndex < 0) return;
+                loadTarget(panel.history[panel.historyIndex], false);
+            });
+
+            more.addEventListener('click', (event) => {
+                event.stopPropagation();
+                moreMenu.hidden = !moreMenu.hidden;
+            });
+
+            popout.addEventListener('click', () => {
+                const panel = panels[activePanel];
+                const target = panel.history[panel.historyIndex] || HOME_TARGET;
+                const routed = target === HOME_TARGET ? '' : buildProxyUrl(target);
+                const proxyUrl = target === HOME_TARGET
+                    ? 'about:blank'
+                    : (routed.startsWith('http://') || routed.startsWith('https://') ? routed : `${window.location.origin}${routed}`);
+                const popup = window.open('about:blank', '_blank');
+                if (!popup) return;
+
+                if (proxyUrl === 'about:blank') {
+                    popup.document.write('<!doctype html><title>Rift Browser</title><style>html,body{margin:0;height:100%;background:#0a0a0a;color:#fff;display:grid;place-items:center;font-family:Arial,sans-serif}</style><div>Open a page first, then use Pop out.</div>');
+                    popup.document.close();
+                    closeMoreMenu();
+                    return;
+                }
+
+                popup.location.replace(proxyUrl);
+                closeMoreMenu();
+            });
+
+            document.addEventListener('click', (event) => {
+                if (moreMenu.hidden) return;
+                if (!moreMenu.contains(event.target) && event.target !== more && !more.contains(event.target)) {
+                    closeMoreMenu();
+                }
             });
 
             frame.addEventListener('load', () => {
-                setStatus(`Showing ${input.value || 'page'}`);
+                if (frame.src.includes('about:blank')) {
+                    document.getElementById('browser-home')?.classList.add('active');
+                } else {
+                    document.getElementById('browser-home')?.classList.remove('active');
+                }
+                setLoading(false);
             });
 
-            loadTarget('https://example.com', true);
+            const query = new URLSearchParams(window.location.search);
+            const initialUrlParam = query.get('url');
+            const initialTarget = initialUrlParam ? toTarget(initialUrlParam) : null;
+            const autoPopout = query.get('popout') === '1';
+            if (initialTarget && !shouldForcePlainProxy(initialTarget) && !shouldOpenDirect(initialTarget)) await ensureScramjetReady();
+            if (autoPopout && initialTarget) {
+                const routed = buildProxyUrl(initialTarget);
+                const proxyUrl = routed.startsWith('http://') || routed.startsWith('https://')
+                    ? routed
+                    : `${window.location.origin}${routed}`;
+                window.location.replace(proxyUrl);
+                return;
+            }
+            loadTarget(initialTarget || HOME_TARGET, true);
+            renderPanelSwitcher();
         })();
     </script>
 

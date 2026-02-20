@@ -194,3 +194,231 @@ document.addEventListener('DOMContentLoaded', () => {
         },
     };
 })();
+
+// Global floating mini music player (left corner).
+(function () {
+    const STORAGE_KEY = 'rift__mini_player_v1';
+    const UPDATE_EVENT = 'rift-mini-player-update';
+    const audio = new Audio();
+    audio.preload = 'metadata';
+
+    const state = {
+        queue: [],
+        currentIndex: -1,
+        isPlaying: false,
+    };
+
+    let elRoot = null;
+    let elArt = null;
+    let elTitle = null;
+    let elTime = null;
+    let elPlay = null;
+
+    function safeParse(raw, fallback) {
+        try { return JSON.parse(raw); } catch { return fallback; }
+    }
+
+    function fmt(seconds) {
+        if (!Number.isFinite(seconds) || seconds < 0) return '0:00';
+        const s = Math.floor(seconds % 60);
+        const m = Math.floor(seconds / 60);
+        return `${m}:${String(s).padStart(2, '0')}`;
+    }
+
+    function saveState() {
+        const payload = {
+            queue: state.queue.slice(0, 100),
+            currentIndex: state.currentIndex,
+            currentTime: Number(audio.currentTime || 0),
+            isPlaying: !!state.isPlaying,
+        };
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+    }
+
+    function loadState() {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        const parsed = safeParse(raw, null);
+        if (!parsed || typeof parsed !== 'object') return;
+        state.queue = Array.isArray(parsed.queue) ? parsed.queue : [];
+        state.currentIndex = Number.isFinite(parsed.currentIndex) ? parsed.currentIndex : -1;
+        if (state.currentIndex >= 0 && state.currentIndex < state.queue.length) {
+            const t = state.queue[state.currentIndex];
+            audio.src = `/api/music/stream/${encodeURIComponent(t.id)}?provider=${encodeURIComponent(t.provider || 'audius')}`;
+            if (Number.isFinite(parsed.currentTime) && parsed.currentTime > 0) {
+                audio.currentTime = parsed.currentTime;
+            }
+            state.isPlaying = !!parsed.isPlaying;
+        }
+    }
+
+    function currentTrack() {
+        if (state.currentIndex < 0 || state.currentIndex >= state.queue.length) return null;
+        return state.queue[state.currentIndex];
+    }
+
+    function notify() {
+        window.dispatchEvent(new CustomEvent(UPDATE_EVENT, {
+            detail: {
+                queue: state.queue,
+                currentIndex: state.currentIndex,
+                isPlaying: !audio.paused,
+                currentTime: Number(audio.currentTime || 0),
+                duration: Number(audio.duration || 0),
+                track: currentTrack(),
+            },
+        }));
+    }
+
+    function syncUi() {
+        if (!elRoot) return;
+        const track = currentTrack();
+        if (!track) {
+            elRoot.style.display = 'none';
+            return;
+        }
+        elRoot.style.display = '';
+        elArt.src = track.artwork || '/favicon.ico';
+        elTitle.textContent = track.title || 'Untitled';
+        elTime.textContent = `${fmt(audio.currentTime)} / ${fmt(audio.duration)}`;
+        elPlay.textContent = audio.paused ? 'play_arrow' : 'pause';
+    }
+
+    async function playTrackAt(index, autoplay = true) {
+        if (!Number.isFinite(index) || index < 0 || index >= state.queue.length) return;
+        state.currentIndex = index;
+        const track = state.queue[index];
+        audio.src = `/api/music/stream/${encodeURIComponent(track.id)}?provider=${encodeURIComponent(track.provider || 'audius')}`;
+        if (autoplay) {
+            try { await audio.play(); } catch {}
+        }
+        syncUi();
+        saveState();
+        notify();
+    }
+
+    async function toggle() {
+        if (!currentTrack()) return;
+        if (audio.paused) {
+            try { await audio.play(); } catch {}
+        } else {
+            audio.pause();
+        }
+        syncUi();
+        saveState();
+        notify();
+    }
+
+    function next() {
+        if (!state.queue.length) return;
+        const nextIndex = state.currentIndex < state.queue.length - 1 ? state.currentIndex + 1 : 0;
+        playTrackAt(nextIndex, true);
+    }
+
+    function prev() {
+        if (!state.queue.length) return;
+        const prevIndex = state.currentIndex > 0 ? state.currentIndex - 1 : state.queue.length - 1;
+        playTrackAt(prevIndex, true);
+    }
+
+    function seekRatio(ratio) {
+        const clamped = Math.max(0, Math.min(1, Number(ratio || 0)));
+        if (!Number.isFinite(audio.duration) || audio.duration <= 0) return;
+        audio.currentTime = audio.duration * clamped;
+        syncUi();
+        saveState();
+        notify();
+    }
+
+    function setQueue(queue, startIndex = 0, autoplay = true) {
+        state.queue = Array.isArray(queue) ? queue.slice(0, 100) : [];
+        state.currentIndex = -1;
+        if (!state.queue.length) {
+            audio.pause();
+            audio.src = '';
+            syncUi();
+            saveState();
+            notify();
+            return;
+        }
+        playTrackAt(startIndex, autoplay);
+    }
+
+    function injectStyle() {
+        if (document.getElementById('rift-mini-player-style')) return;
+        const style = document.createElement('style');
+        style.id = 'rift-mini-player-style';
+        style.textContent = `
+            .rift-mini-player{position:fixed;left:12px;top:12px;z-index:11000;display:none;width:240px;padding:8px;border-radius:12px;border:1px solid rgba(255,255,255,.2);background:rgba(0,0,0,.72);backdrop-filter:blur(10px)}
+            .rift-mini-top{display:grid;grid-template-columns:44px 1fr;gap:8px;align-items:center}
+            .rift-mini-art{width:44px;height:44px;border-radius:8px;object-fit:cover;background:#111}
+            .rift-mini-title{color:#fff;font-size:11px;line-height:1.2;max-height:2.4em;overflow:hidden}
+            .rift-mini-time{color:rgba(255,255,255,.65);font-size:10px;margin-top:2px}
+            .rift-mini-controls{margin-top:7px;display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+            .rift-mini-btn{height:28px;border-radius:8px;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.12);color:#fff;display:grid;place-items:center;cursor:pointer}
+            .rift-mini-btn .material-icons{font-size:18px}
+        `;
+        document.head.appendChild(style);
+    }
+
+    function createUi() {
+        injectStyle();
+        const root = document.createElement('div');
+        root.className = 'rift-mini-player';
+        root.innerHTML = `
+            <div class="rift-mini-top">
+                <img class="rift-mini-art" alt="">
+                <div>
+                    <div class="rift-mini-title"></div>
+                    <div class="rift-mini-time"></div>
+                </div>
+            </div>
+            <div class="rift-mini-controls">
+                <button class="rift-mini-btn" type="button" data-action="prev"><span class="material-icons">skip_previous</span></button>
+                <button class="rift-mini-btn" type="button" data-action="play"><span class="material-icons">play_arrow</span></button>
+                <button class="rift-mini-btn" type="button" data-action="next"><span class="material-icons">skip_next</span></button>
+            </div>
+        `;
+        document.body.appendChild(root);
+        elRoot = root;
+        elArt = root.querySelector('.rift-mini-art');
+        elTitle = root.querySelector('.rift-mini-title');
+        elTime = root.querySelector('.rift-mini-time');
+        elPlay = root.querySelector('[data-action="play"] .material-icons');
+        root.querySelector('[data-action="prev"]').addEventListener('click', prev);
+        root.querySelector('[data-action="play"]').addEventListener('click', () => { toggle(); });
+        root.querySelector('[data-action="next"]').addEventListener('click', next);
+    }
+
+    audio.addEventListener('timeupdate', () => { syncUi(); notify(); saveState(); });
+    audio.addEventListener('play', () => { state.isPlaying = true; syncUi(); notify(); saveState(); });
+    audio.addEventListener('pause', () => { state.isPlaying = false; syncUi(); notify(); saveState(); });
+    audio.addEventListener('ended', next);
+
+    window.RiftMiniPlayer = {
+        setQueue,
+        playTrackAt,
+        toggle,
+        prev,
+        next,
+        seekRatio,
+        getState() {
+            return {
+                queue: state.queue,
+                currentIndex: state.currentIndex,
+                isPlaying: !audio.paused,
+                currentTime: Number(audio.currentTime || 0),
+                duration: Number(audio.duration || 0),
+                track: currentTrack(),
+            };
+        },
+        updateEvent: UPDATE_EVENT,
+    };
+
+    window.addEventListener('beforeunload', saveState);
+    document.addEventListener('DOMContentLoaded', () => {
+        createUi();
+        loadState();
+        syncUi();
+        notify();
+    });
+})();

@@ -17,11 +17,49 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: #000000;
+  background:
+    radial-gradient(1200px 700px at 100% 0%, rgba(70, 86, 100, 0.18), transparent 60%),
+    radial-gradient(900px 500px at 0% 100%, rgba(40, 52, 64, 0.12), transparent 65%),
+    #050608;
   cursor:
     url("/assets/images/cursor.png") 16 16,
     auto;
   overflow: hidden;
+  position: relative;
+  isolation: isolate;
+}
+
+/* GIF rain overlay (user-provided). */
+body::before,
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: -2;
+  will-change: opacity;
+}
+
+body::before {
+  background: url("/global/images/rain-overlay.gif") center center / cover no-repeat;
+  filter: blur(2.2px);
+  opacity: 0.3;
+}
+
+body::after {
+  content: none;
+}
+
+body > * {
+  position: relative;
+  z-index: 1;
+}
+
+.container,
+.bottom-nav,
+.nav-toggle {
+  position: relative;
+  z-index: 2;
 }
 
 .container {
@@ -170,6 +208,12 @@ header h1 {
   to {
     opacity: 0;
     transform: scale(0.5);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body::before {
+    opacity: 0.28;
   }
 }
 
@@ -1101,13 +1145,17 @@ body.games-page {
 /* ── Home Cards ── */
 .home-cards {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 14px;
-  max-width: 500px;
+  grid-template-columns: repeat(4, 170px);
+  grid-template-rows: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  width: 100%;
+  max-width: 920px;
   margin: 0 auto;
+  justify-content: center;
 }
 
 .home-card {
+  min-height: 115px;
   display: flex;
   flex-direction: column;
   align-items: center;

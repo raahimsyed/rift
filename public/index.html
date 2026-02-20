@@ -2,18 +2,27 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Rift Proxy</title>
+    
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-W1SEMRGLRR"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', 'G-W1SEMRGLRR');
+    </script><title>Rift Proxy</title>
     <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
     <link rel="stylesheet" href="./global/css/global.css">
     <style>
         /* Fallback home-card styling in case global.css fails to load/parse on a deploy */
         .home-cards {
             display: grid;
-            grid-template-columns: repeat(2, minmax(140px, 1fr));
-            gap: 14px;
-            width: min(92vw, 360px);
+            grid-template-columns: repeat(4, 170px);
+            grid-template-rows: repeat(2, minmax(0, 1fr));
+            gap: 12px;
+            width: 100%;
+            max-width: 920px;
             margin: 0 auto;
+            justify-content: center;
         }
 
         .home-card {
@@ -49,13 +58,20 @@
             color: rgba(255, 255, 255, 0.5);
         }
 
-
-        @media (max-width: 520px) {
-            .home-cards {
-                grid-template-columns: 1fr;
-                width: min(92vw, 320px);
-            }
+        .user-stats {
+            margin-top: 10px;
+            display: grid;
+            gap: 4px;
+            justify-items: center;
         }
+
+        .user-stat-line {
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.62);
+            text-transform: lowercase;
+            letter-spacing: 0.05em;
+        }
+
     </style>
 </head>
 <body>
@@ -63,6 +79,10 @@
         <header>
             <h1>Rift</h1>
             <div id="typingText" class="typing-text"></div>
+            <div class="user-stats">
+                <div id="totalUsersLine" class="user-stat-line">total users: ...</div>
+                <div id="activeUsersLine" class="user-stat-line">active now: ...</div>
+            </div>
         </header>
 
         <div class="home-cards">
@@ -73,6 +93,10 @@
             <a href="/apps" class="home-card">
                 <span class="material-icons">apps</span>
                 <span class="home-card-label">apps</span>
+            </a>
+            <a href="/music" class="home-card">
+                <span class="material-icons">library_music</span>
+                <span class="home-card-label">music</span>
             </a>
             <a href="/chat" class="home-card">
                 <span class="material-icons">forum</span>
@@ -90,18 +114,14 @@
                 <span class="material-icons">settings</span>
                 <span class="home-card-label">settings</span>
             </a>
-            <a href="/credits" class="home-card">
-                <span class="material-icons">handshake</span>
-                <span class="home-card-label">credits</span>
-            </a>
             <a href="/social-media-&-partners" class="home-card">
-                <span class="material-icons">connect_without_contact</span>
-                <span class="home-card-label">social media & partners</span>
+                <span class="material-icons">handshake</span>
+                <span class="home-card-label">credits + partners</span>
             </a>
         </div>
     </div>
     
-    <nav class="bottom-nav">
+            <nav class="bottom-nav">
         <button class="nav-button active" onclick="location.href='/'">
             <span class="material-icons">home</span>
         </button>
@@ -110,6 +130,9 @@
         </button>
         <button class="nav-button" onclick="location.href='/apps'">
             <span class="material-icons">apps</span>
+        </button>
+        <button class="nav-button" onclick="location.href='/music'">
+            <span class="material-icons">library_music</span>
         </button>
         <button class="nav-button" onclick="location.href='/chat'">
             <span class="material-icons">forum</span>
@@ -137,24 +160,59 @@
         <h3>What's New?</h3>
         <div style="display: flex; flex-direction: column; gap: 12px;">
             <div style="display: flex; align-items: start; gap: 10px;">
-                <span class="material-icons" style="color: rgba(255, 255, 255, 0.7);">new_releases</span>
+                <span class="material-icons" style="color: rgba(255, 255, 255, 0.7);">language</span>
                 <div>
-                    <strong style="color: white; font-size: 13px;">Navigation Positioning</strong>
-                    <p style="margin: 4px 0 0; font-size: 12px; color: rgba(255, 255, 255, 0.6);">Choose where the nav bar appears - bottom, top, left, or right!</p>
+                    <strong style="color: white; font-size: 13px;">Browser Overhaul</strong>
+                    <p style="margin: 4px 0 0; font-size: 12px; color: rgba(255, 255, 255, 0.6);">Refined browser layout, centered viewport, restored Rift browser home, tab panel controls, and popout support.</p>
                 </div>
             </div>
             <div style="display: flex; align-items: start; gap: 10px;">
-                <span class="material-icons" style="color: rgba(255, 255, 255, 0.7);">group</span>
+                <span class="material-icons" style="color: rgba(255, 255, 255, 0.7);">sports_esports</span>
                 <div>
-                    <strong style="color: white; font-size: 13px;">Social Media & Partners</strong>
-                    <p style="margin: 4px 0 0; font-size: 12px; color: rgba(255, 255, 255, 0.6);">Check out our new social media and partners page!</p>
+                    <strong style="color: white; font-size: 13px;">Expanded Game Vault</strong>
+                    <p style="margin: 4px 0 0; font-size: 12px; color: rgba(255, 255, 255, 0.6);">Added GN-Math, SDXP, Truffled, Velara, PeteZah Lite, and Seraph libraries with source filters and reduced duplicates.</p>
                 </div>
             </div>
             <div style="display: flex; align-items: start; gap: 10px;">
-                <span class="material-icons" style="color: rgba(255, 255, 255, 0.7);">bug_report</span>
+                <span class="material-icons" style="color: rgba(255, 255, 255, 0.7);">play_circle</span>
                 <div>
-                    <strong style="color: white; font-size: 13px;">Bug Fixes</strong>
-                    <p style="margin: 4px 0 0; font-size: 12px; color: rgba(255, 255, 255, 0.6);">Various improvements and bug fixes across the platform.</p>
+                    <strong style="color: white; font-size: 13px;">Game Launch Flow</strong>
+                    <p style="margin: 4px 0 0; font-size: 12px; color: rgba(255, 255, 255, 0.6);">New game detail modal with image, favorite, save, and play. Loading screen now hides browser UI during launch.</p>
+                </div>
+            </div>
+            <div style="display: flex; align-items: start; gap: 10px;">
+                <span class="material-icons" style="color: rgba(255, 255, 255, 0.7);">person</span>
+                <div>
+                    <strong style="color: white; font-size: 13px;">Account + Cloud Save</strong>
+                    <p style="margin: 4px 0 0; font-size: 12px; color: rgba(255, 255, 255, 0.6);">Signup/login with session auth and synced settings/game progress support.</p>
+                </div>
+            </div>
+            <div style="display: flex; align-items: start; gap: 10px;">
+                <span class="material-icons" style="color: rgba(255, 255, 255, 0.7);">forum</span>
+                <div>
+                    <strong style="color: white; font-size: 13px;">Chatrooms System</strong>
+                    <p style="margin: 4px 0 0; font-size: 12px; color: rgba(255, 255, 255, 0.6);">Public/private room creation, passwords, pinned #lobby + #links, owner delete, and admin override for user rift.</p>
+                </div>
+            </div>
+            <div style="display: flex; align-items: start; gap: 10px;">
+                <span class="material-icons" style="color: rgba(255, 255, 255, 0.7);">schedule</span>
+                <div>
+                    <strong style="color: white; font-size: 13px;">Auto Cleanup</strong>
+                    <p style="margin: 4px 0 0; font-size: 12px; color: rgba(255, 255, 255, 0.6);">Non-system chatrooms are automatically removed after 24 hours of inactivity.</p>
+                </div>
+            </div>
+            <div style="display: flex; align-items: start; gap: 10px;">
+                <span class="material-icons" style="color: rgba(255, 255, 255, 0.7);">security</span>
+                <div>
+                    <strong style="color: white; font-size: 13px;">Proxy + Compatibility Fixes</strong>
+                    <p style="margin: 4px 0 0; font-size: 12px; color: rgba(255, 255, 255, 0.6);">Improved proxy handling for assets/forms, Velara endpoints passthrough, and broader game-site compatibility fixes.</p>
+                </div>
+            </div>
+            <div style="display: flex; align-items: start; gap: 10px;">
+                <span class="material-icons" style="color: rgba(255, 255, 255, 0.7);">palette</span>
+                <div>
+                    <strong style="color: white; font-size: 13px;">Brand/UX Polish</strong>
+                    <p style="margin: 4px 0 0; font-size: 12px; color: rgba(255, 255, 255, 0.6);">Updated favicon/logo wiring, fixed broken page CSS issues, and improved overall UI consistency.</p>
                 </div>
             </div>
         </div>
@@ -180,7 +238,7 @@
 <script>
     // What's New popup (shows once per session)
     document.addEventListener('DOMContentLoaded', () => {
-        const WHATS_NEW_KEY = 'rift__whats-new-seen';
+        const WHATS_NEW_KEY = 'rift__whats-new-seen-v2';
         const popup = document.getElementById('whats-new-popup');
         const closeBtn = document.getElementById('whats-new-close');
         
@@ -209,6 +267,71 @@
             }
         });
     });
+</script>
+
+<script>
+    (async () => {
+        const totalEl = document.getElementById('totalUsersLine');
+        const activeEl = document.getElementById('activeUsersLine');
+        if (!totalEl || !activeEl) return;
+        const PRESENCE_KEY = 'rift__presence_id';
+
+        function getPresenceId() {
+            let id = sessionStorage.getItem(PRESENCE_KEY);
+            if (!id) {
+                id = `tab_${Math.random().toString(36).slice(2)}_${Date.now().toString(36)}`;
+                sessionStorage.setItem(PRESENCE_KEY, id);
+            }
+            return id;
+        }
+
+        async function pingPresence() {
+            const id = getPresenceId();
+            await fetch('/api/presence/ping', {
+                method: 'POST',
+                credentials: 'include',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id }),
+                keepalive: true,
+            });
+        }
+
+        function leavePresence() {
+            const id = getPresenceId();
+            const payload = JSON.stringify({ id });
+            const blob = new Blob([payload], { type: 'application/json' });
+            if (navigator.sendBeacon) {
+                navigator.sendBeacon('/api/presence/leave', blob);
+            } else {
+                fetch('/api/presence/leave', {
+                    method: 'POST',
+                    credentials: 'include',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: payload,
+                    keepalive: true,
+                });
+            }
+        }
+
+        async function refreshStats() {
+            const res = await fetch('/api/stats/users', { credentials: 'include' });
+            const data = await res.json();
+            if (!res.ok || !data?.ok) throw new Error(data?.error || `request failed (${res.status})`);
+            totalEl.textContent = `total users: ${Number(data.totalUsers || 0)}`;
+            activeEl.textContent = `active now: ${Number(data.activeUsers || 0)}`;
+        }
+
+        try {
+            await pingPresence();
+            setInterval(() => { pingPresence().catch(() => {}); }, 20000);
+            setInterval(() => { refreshStats().catch(() => {}); }, 15000);
+            window.addEventListener('pagehide', leavePresence);
+            await refreshStats();
+        } catch {
+            totalEl.textContent = 'total users: unavailable';
+            activeEl.textContent = 'active now: unavailable';
+        }
+    })();
 </script>
 
 </body>

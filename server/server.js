@@ -32,10 +32,18 @@ const TRUFFLED_BASE = 'https://truffled.lol/';
 const VELARA_GAMES_JSON = 'https://velara.my/data/games.json';
 const VELARA_BASE = 'https://velara.my/';
 const VELARA_ORIGIN = 'https://velara.my';
+const AUDIUS_API_BASE = 'https://discoveryprovider.audius.co';
+const JAMENDO_API_BASE = 'https://api.jamendo.com/v3.0';
+const JAMENDO_CLIENT_ID = String(process.env.JAMENDO_CLIENT_ID || '').trim();
 const AUTH_DB_PATH = path.join(__dirname, '..', 'data', 'auth-db.json');
 const SESSION_COOKIE = 'rift_sid';
 const SESSION_TTL_MS = 1000 * 60 * 60 * 24 * 30; // 30 days
+const ACTIVE_USER_WINDOW_MS = 1000 * 60 * 10; // 10 minutes
+const PRESENCE_TTL_MS = 1000 * 60; // 60 seconds
+const CHAT_ROOM_INACTIVE_TTL_MS = 1000 * 60 * 60 * 24; // 24 hours
+const SYSTEM_CHAT_ROOM_IDS = new Set(['lobby', 'links']);
 let authWriteLock = Promise.resolve();
+const presenceMap = new Map();
 
 async function readRawBody(req) {
     return await new Promise((resolve, reject) => {
@@ -171,8 +179,38 @@ function isSafeHostname(hostname) {
     );
 }
 
+function hasJamendoClientId() {
+    return JAMENDO_CLIENT_ID.length >= 6;
+}
+
+function pickAudiusArtwork(track) {
+    const artwork = track?.artwork;
+    if (!artwork || typeof artwork !== 'object') return track?.user?.profile_picture || '';
+    return artwork['480x480'] || artwork['150x150'] || artwork['1000x1000'] || '';
+}
+
 function jsonError(res, status, error) {
     return res.status(status).json({ error });
+}
+
+function normalizePresenceId(value) {
+    const id = String(value || '').trim();
+    if (!/^[a-z0-9_-]{8,80}$/i.test(id)) return '';
+    return id;
+}
+
+function prunePresence(now = Date.now()) {
+    for (const [id, entry] of presenceMap.entries()) {
+        const lastSeenAt = Number(entry?.lastSeenAt || 0);
+        if (!lastSeenAt || (now - lastSeenAt) > PRESENCE_TTL_MS) {
+            presenceMap.delete(id);
+        }
+    }
+}
+
+function countActivePresence(now = Date.now()) {
+    prunePresence(now);
+    return presenceMap.size;
 }
 
 function parseCookies(req) {
@@ -249,6 +287,9 @@ async function readAuthDb() {
     db.users = Array.isArray(db.users) ? db.users : [];
     db.sessions = Array.isArray(db.sessions) ? db.sessions : [];
     db.saves = db.saves && typeof db.saves === 'object' ? db.saves : {};
+    if (pruneInactiveChatRooms(db)) {
+        await writeAuthDb(db);
+    }
     return db;
 }
 
@@ -301,9 +342,195 @@ function getUserSave(db, userId) {
     return save;
 }
 
+function normalizeMusicTrack(input) {
+    if (!input || typeof input !== 'object') return null;
+    const provider = String(input.provider || '').trim().toLowerCase();
+    const id = String(input.id || '').trim();
+    const title = String(input.title || '').trim().slice(0, 180);
+    const artist = String(input.artist || '').trim().slice(0, 120);
+    const artwork = String(input.artwork || '').trim().slice(0, 1000);
+    const durationMs = Number(input.durationMs || 0);
+    if (!/^[a-z0-9_-]{2,20}$/i.test(provider)) return null;
+    if (!/^[a-z0-9:_-]{1,140}$/i.test(id)) return null;
+    if (!title) return null;
+    return {
+        id,
+        provider,
+        key: `${provider}:${id}`,
+        title,
+        artist: artist || 'Unknown artist',
+        artwork,
+        durationMs: Number.isFinite(durationMs) && durationMs > 0 ? Math.round(durationMs) : 0,
+    };
+}
+
+function sanitizePlaylistName(value) {
+    const name = String(value || '').trim().replace(/\s+/g, ' ');
+    if (!name) return '';
+    return name.slice(0, 60);
+}
+
+function getUserMusicLibrary(save, user) {
+    if (!save.music || typeof save.music !== 'object') {
+        save.music = {};
+    }
+    if (!Array.isArray(save.music.favorites)) save.music.favorites = [];
+    if (!Array.isArray(save.music.playlists)) save.music.playlists = [];
+
+    save.music.favorites = save.music.favorites
+        .map((entry) => {
+            const track = normalizeMusicTrack(entry);
+            if (!track) return null;
+            const favoritedAt = Number(entry?.favoritedAt || Date.now());
+            return { ...track, favoritedAt };
+        })
+        .filter(Boolean);
+
+    save.music.playlists = save.music.playlists
+        .filter((playlist) => playlist && typeof playlist === 'object')
+        .map((playlist) => {
+            const name = sanitizePlaylistName(playlist.name);
+            const id = String(playlist.id || '').trim() || crypto.randomUUID();
+            const createdAt = Number(playlist.createdAt || Date.now());
+            const updatedAt = Number(playlist.updatedAt || createdAt);
+            const tracks = Array.isArray(playlist.tracks)
+                ? playlist.tracks.map((entry) => normalizeMusicTrack(entry)).filter(Boolean)
+                : [];
+            return {
+                id,
+                name: name || 'untitled playlist',
+                isPrivate: Boolean(playlist.isPrivate),
+                ownerUserId: user.id,
+                ownerUsername: user.username,
+                createdAt,
+                updatedAt,
+                tracks,
+            };
+        });
+
+    return save.music;
+}
+
+function toPlaylistPublicView(playlist) {
+    return {
+        id: playlist.id,
+        name: playlist.name,
+        isPrivate: !!playlist.isPrivate,
+        ownerUsername: playlist.ownerUsername,
+        createdAt: playlist.createdAt,
+        updatedAt: playlist.updatedAt,
+        trackCount: Array.isArray(playlist.tracks) ? playlist.tracks.length : 0,
+        tracks: Array.isArray(playlist.tracks) ? playlist.tracks : [],
+    };
+}
+
 function getChatLog(db) {
     if (!Array.isArray(db.chat)) db.chat = [];
     return db.chat;
+}
+
+function normalizeRoomName(input) {
+    return String(input || '')
+        .trim()
+        .toLowerCase()
+        .replace(/[^a-z0-9 _-]/g, '')
+        .replace(/\s+/g, '-')
+        .replace(/-+/g, '-')
+        .slice(0, 40);
+}
+
+function createSystemRoom(id, now) {
+    return {
+        id,
+        name: id,
+        ownerUserId: 'system',
+        ownerUsername: 'system',
+        isPrivate: false,
+        createdAt: now,
+        lastMessageAt: now,
+    };
+}
+
+function getChatRooms(db) {
+    const now = Date.now();
+    if (!db.chatRooms || typeof db.chatRooms !== 'object') db.chatRooms = {};
+    if (!db.chatRooms.lobby) db.chatRooms.lobby = createSystemRoom('lobby', now);
+    if (!db.chatRooms.links) db.chatRooms.links = createSystemRoom('links', now);
+    return db.chatRooms;
+}
+
+function getChatMessagesMap(db) {
+    if (!db.chatMessages || typeof db.chatMessages !== 'object') db.chatMessages = {};
+    return db.chatMessages;
+}
+
+function getRoomMessages(db, roomId) {
+    const map = getChatMessagesMap(db);
+    if (!Array.isArray(map[roomId])) map[roomId] = [];
+    return map[roomId];
+}
+
+function toRoomPublicView(room) {
+    return {
+        id: room.id,
+        name: room.name,
+        ownerUsername: room.ownerUsername,
+        isPrivate: !!room.isPrivate,
+        createdAt: room.createdAt,
+        lastMessageAt: room.lastMessageAt || room.createdAt,
+    };
+}
+
+function verifyRoomPassword(room, password) {
+    if (!room.isPrivate) return true;
+    if (!password || typeof password !== 'string') return false;
+    const hash = hashPassword(password, room.passwordSalt);
+    return hash === room.passwordHash;
+}
+
+function isRiftAdminUser(user) {
+    if (!user) return false;
+    return sanitizeUsername(user.username) === 'rift';
+}
+
+function canAccessRoom(authUser, room, password) {
+    if (!room?.isPrivate) return true;
+    if (isRiftAdminUser(authUser)) return true;
+    return verifyRoomPassword(room, password);
+}
+
+function pruneInactiveChatRooms(db) {
+    const rooms = getChatRooms(db);
+    const messagesMap = getChatMessagesMap(db);
+    const now = Date.now();
+    let changed = false;
+
+    for (const [roomId, room] of Object.entries(rooms)) {
+        if (SYSTEM_CHAT_ROOM_IDS.has(roomId)) continue;
+        const lastActivity = Number(room.lastMessageAt || room.createdAt || 0);
+        if (lastActivity <= 0 || (now - lastActivity) < CHAT_ROOM_INACTIVE_TTL_MS) continue;
+        delete rooms[roomId];
+        delete messagesMap[roomId];
+        changed = true;
+    }
+
+    return changed;
+}
+
+function sortChatRoomsForList(a, b) {
+    if (a.id === 'lobby') return -1;
+    if (b.id === 'lobby') return 1;
+    if (a.id === 'links') return -1;
+    if (b.id === 'links') return 1;
+    return (b.lastMessageAt || 0) - (a.lastMessageAt || 0);
+}
+
+function canDeleteRoom(authUser, room) {
+    if (!authUser || !room) return false;
+    if (SYSTEM_CHAT_ROOM_IDS.has(room.id)) return false;
+    const username = sanitizeUsername(authUser.username);
+    if (username === 'rift') return true;
+    return room.ownerUserId === authUser.id;
 }
 
 function sanitizeChatText(input) {
@@ -520,6 +747,75 @@ app.get('/api/auth/me', async (req, res) => {
     }
 });
 
+app.get('/api/auth/ping', async (req, res) => {
+    try {
+        const auth = await getSessionFromRequest(req);
+        if (!auth) return res.json({ ok: true, authenticated: false });
+        const now = Date.now();
+        await updateAuthDb((db) => {
+            const session = db.sessions.find((s) => s.token === auth.token);
+            if (session) session.lastSeenAt = now;
+            return db;
+        });
+        return res.json({ ok: true, authenticated: true, now });
+    } catch (error) {
+        return jsonError(res, 500, `Ping failed: ${error.message}`);
+    }
+});
+
+app.get('/api/stats/users', async (req, res) => {
+    try {
+        const now = Date.now();
+        const db = await readAuthDb();
+        const totalUsers = Array.isArray(db.users) ? db.users.length : 0;
+        const activeUserIds = new Set();
+        const sessions = Array.isArray(db.sessions) ? db.sessions : [];
+        for (const session of sessions) {
+            if (!session || session.expiresAt <= now) continue;
+            const lastSeenAt = Number(session.lastSeenAt || session.createdAt || 0);
+            if (lastSeenAt > 0 && (now - lastSeenAt) <= ACTIVE_USER_WINDOW_MS) {
+                activeUserIds.add(session.userId);
+            }
+        }
+        const activeTabs = countActivePresence(now);
+        return res.json({
+            ok: true,
+            totalUsers,
+            activeUsers: activeTabs,
+            activeWindowMs: ACTIVE_USER_WINDOW_MS,
+            activeTabs,
+            activeSignedInUsers: activeUserIds.size,
+        });
+    } catch (error) {
+        return jsonError(res, 500, `User stats failed: ${error.message}`);
+    }
+});
+
+app.post('/api/presence/ping', async (req, res) => {
+    try {
+        const id = normalizePresenceId(req.body?.id);
+        if (!id) return jsonError(res, 400, 'Invalid presence id');
+        const now = Date.now();
+        prunePresence(now);
+        presenceMap.set(id, { lastSeenAt: now });
+        return res.json({ ok: true, activeTabs: presenceMap.size, ttlMs: PRESENCE_TTL_MS });
+    } catch (error) {
+        return jsonError(res, 500, `Presence ping failed: ${error.message}`);
+    }
+});
+
+app.post('/api/presence/leave', async (req, res) => {
+    try {
+        const id = normalizePresenceId(req.body?.id);
+        if (!id) return jsonError(res, 400, 'Invalid presence id');
+        presenceMap.delete(id);
+        prunePresence(Date.now());
+        return res.json({ ok: true, activeTabs: presenceMap.size });
+    } catch (error) {
+        return jsonError(res, 500, `Presence leave failed: ${error.message}`);
+    }
+});
+
 app.get('/api/save', async (req, res) => {
     try {
         const auth = await getSessionFromRequest(req);
@@ -580,16 +876,381 @@ app.put('/api/save/games/:gameId', async (req, res) => {
     }
 });
 
+app.get('/api/music/search', async (req, res) => {
+    try {
+        const query = String(req.query?.q || '').trim().slice(0, 120);
+        if (!query) return jsonError(res, 400, 'q is required');
+        const source = String(req.query?.source || 'all').trim().toLowerCase();
+        const limit = 24;
+        const providers = source === 'audius' || source === 'jamendo'
+            ? [source]
+            : ['audius', 'jamendo'];
+        const tracks = [];
+        const warnings = [];
+
+        if (providers.includes('audius')) {
+            try {
+                const endpoint = new URL(`${AUDIUS_API_BASE}/v1/tracks/search`);
+                endpoint.searchParams.set('query', query);
+                endpoint.searchParams.set('app_name', 'rift');
+                endpoint.searchParams.set('limit', String(limit));
+                const upstream = await fetch(endpoint.toString(), {
+                    headers: { 'User-Agent': 'Rift-Music/1.0' },
+                });
+                if (upstream.ok) {
+                    const data = await upstream.json();
+                    const list = Array.isArray(data?.data) ? data.data : [];
+                    for (const item of list) {
+                        if (!item?.id) continue;
+                        tracks.push({
+                            id: String(item.id),
+                            provider: 'audius',
+                            title: String(item.title || ''),
+                            artist: String(item?.user?.name || ''),
+                            artwork: pickAudiusArtwork(item),
+                            durationMs: Number(item.duration || 0) * 1000,
+                        });
+                    }
+                } else {
+                    warnings.push(`audius search failed (${upstream.status})`);
+                }
+            } catch (error) {
+                warnings.push(`audius error: ${error.message}`);
+            }
+        }
+
+        if (providers.includes('jamendo')) {
+            if (!hasJamendoClientId()) {
+                warnings.push('jamendo not configured (missing JAMENDO_CLIENT_ID)');
+            } else {
+                try {
+                    const endpoint = new URL(`${JAMENDO_API_BASE}/tracks/`);
+                    endpoint.searchParams.set('client_id', JAMENDO_CLIENT_ID);
+                    endpoint.searchParams.set('format', 'json');
+                    endpoint.searchParams.set('limit', String(limit));
+                    endpoint.searchParams.set('search', query);
+                    endpoint.searchParams.set('audioformat', 'mp32');
+                    const upstream = await fetch(endpoint.toString(), {
+                        headers: { 'User-Agent': 'Rift-Music/1.0' },
+                    });
+                    if (upstream.ok) {
+                        const data = await upstream.json();
+                        const list = Array.isArray(data?.results) ? data.results : [];
+                        for (const item of list) {
+                            if (!item?.id || !item?.audio) continue;
+                            tracks.push({
+                                id: String(item.id),
+                                provider: 'jamendo',
+                                title: String(item.name || ''),
+                                artist: String(item.artist_name || ''),
+                                artwork: String(item.image || ''),
+                                durationMs: Number(item.duration || 0) * 1000,
+                                streamUrl: String(item.audio || ''),
+                            });
+                        }
+                    } else {
+                        warnings.push(`jamendo search failed (${upstream.status})`);
+                    }
+                } catch (error) {
+                    warnings.push(`jamendo error: ${error.message}`);
+                }
+            }
+        }
+
+        return res.json({
+            ok: true,
+            query,
+            source,
+            tracks: tracks.slice(0, 80),
+            warnings,
+        });
+    } catch (error) {
+        return jsonError(res, 500, `Music search failed: ${error.message}`);
+    }
+});
+
+app.get('/api/music/stream/:trackId', async (req, res) => {
+    try {
+        const trackId = String(req.params?.trackId || '').trim();
+        const provider = String(req.query?.provider || 'audius').trim().toLowerCase();
+
+        if (provider === 'audius') {
+            if (!/^[a-z0-9_-]+$/i.test(trackId)) return jsonError(res, 400, 'Invalid Audius track id');
+            const streamEndpoint = new URL(`${AUDIUS_API_BASE}/v1/tracks/${trackId}/stream`);
+            streamEndpoint.searchParams.set('app_name', 'rift');
+            return res.redirect(302, streamEndpoint.toString());
+        }
+
+        if (provider === 'jamendo') {
+            if (!/^\d+$/.test(trackId)) return jsonError(res, 400, 'Invalid Jamendo track id');
+            if (!hasJamendoClientId()) {
+                return jsonError(res, 503, 'Jamendo API not configured. Set JAMENDO_CLIENT_ID on server.');
+            }
+            const trackEndpoint = new URL(`${JAMENDO_API_BASE}/tracks/`);
+            trackEndpoint.searchParams.set('client_id', JAMENDO_CLIENT_ID);
+            trackEndpoint.searchParams.set('format', 'json');
+            trackEndpoint.searchParams.set('id', trackId);
+            trackEndpoint.searchParams.set('audioformat', 'mp32');
+            const trackRes = await fetch(trackEndpoint.toString(), {
+                headers: { 'User-Agent': 'Rift-Music/1.0' },
+            });
+            if (!trackRes.ok) {
+                return jsonError(res, trackRes.status, `Jamendo track lookup failed (${trackRes.status})`);
+            }
+            const data = await trackRes.json();
+            const item = Array.isArray(data?.results) ? data.results[0] : null;
+            const streamUrl = String(item?.audio || '').trim();
+            if (!streamUrl) return jsonError(res, 404, 'No playable stream found for this track.');
+            return res.redirect(302, streamUrl);
+        }
+
+        return jsonError(res, 400, 'Unsupported provider');
+    } catch (error) {
+        return jsonError(res, 500, `Music stream failed: ${error.message}`);
+    }
+});
+
+app.get('/api/music/library', async (req, res) => {
+    try {
+        const auth = await getSessionFromRequest(req);
+        if (!auth) return jsonError(res, 401, 'Unauthorized');
+        const save = getUserSave(auth.db, auth.user.id);
+        const music = getUserMusicLibrary(save, auth.user);
+        return res.json({
+            ok: true,
+            favorites: music.favorites,
+            playlists: music.playlists.map((playlist) => toPlaylistPublicView(playlist)),
+        });
+    } catch (error) {
+        return jsonError(res, 500, `Music library read failed: ${error.message}`);
+    }
+});
+
+app.put('/api/music/favorites', async (req, res) => {
+    try {
+        const auth = await getSessionFromRequest(req);
+        if (!auth) return jsonError(res, 401, 'Unauthorized');
+        const track = normalizeMusicTrack(req.body?.track);
+        if (!track) return jsonError(res, 400, 'Invalid track payload');
+        let isFavorite = req.body?.isFavorite;
+        if (typeof isFavorite !== 'boolean') isFavorite = null;
+
+        let finalFavoriteState = false;
+        let favorites = [];
+        await updateAuthDb((db) => {
+            const user = db.users.find((u) => u.id === auth.user.id) || auth.user;
+            const save = getUserSave(db, auth.user.id);
+            const music = getUserMusicLibrary(save, user);
+            const existingIndex = music.favorites.findIndex((entry) => entry.key === track.key);
+            const targetState = isFavorite === null ? existingIndex === -1 : isFavorite;
+
+            if (targetState) {
+                const next = { ...track, favoritedAt: Date.now() };
+                if (existingIndex >= 0) {
+                    music.favorites[existingIndex] = next;
+                } else {
+                    music.favorites.unshift(next);
+                }
+                finalFavoriteState = true;
+            } else if (existingIndex >= 0) {
+                music.favorites.splice(existingIndex, 1);
+                finalFavoriteState = false;
+            } else {
+                finalFavoriteState = false;
+            }
+            favorites = music.favorites.slice(0, 500);
+            music.favorites = favorites;
+            return db;
+        });
+
+        return res.json({
+            ok: true,
+            isFavorite: finalFavoriteState,
+            favoritesCount: favorites.length,
+            favorites,
+        });
+    } catch (error) {
+        return jsonError(res, 500, `Favorite update failed: ${error.message}`);
+    }
+});
+
+app.post('/api/music/playlists', async (req, res) => {
+    try {
+        const auth = await getSessionFromRequest(req);
+        if (!auth) return jsonError(res, 401, 'Unauthorized');
+        const name = sanitizePlaylistName(req.body?.name);
+        const isPrivate = Boolean(req.body?.isPrivate);
+        if (!name) return jsonError(res, 400, 'Playlist name is required.');
+
+        let created = null;
+        await updateAuthDb((db) => {
+            const user = db.users.find((u) => u.id === auth.user.id) || auth.user;
+            const save = getUserSave(db, auth.user.id);
+            const music = getUserMusicLibrary(save, user);
+            if (music.playlists.length >= 100) {
+                throw new Error('PLAYLIST_LIMIT_REACHED');
+            }
+            const now = Date.now();
+            const playlist = {
+                id: crypto.randomUUID(),
+                name,
+                isPrivate,
+                ownerUserId: user.id,
+                ownerUsername: user.username,
+                createdAt: now,
+                updatedAt: now,
+                tracks: [],
+            };
+            music.playlists.unshift(playlist);
+            created = toPlaylistPublicView(playlist);
+            return db;
+        });
+
+        return res.json({ ok: true, playlist: created });
+    } catch (error) {
+        if (error.message === 'PLAYLIST_LIMIT_REACHED') {
+            return jsonError(res, 409, 'Playlist limit reached (100).');
+        }
+        return jsonError(res, 500, `Playlist create failed: ${error.message}`);
+    }
+});
+
+app.delete('/api/music/playlists/:playlistId', async (req, res) => {
+    try {
+        const auth = await getSessionFromRequest(req);
+        if (!auth) return jsonError(res, 401, 'Unauthorized');
+        const playlistId = String(req.params?.playlistId || '').trim();
+        if (!playlistId) return jsonError(res, 400, 'Invalid playlist id');
+
+        await updateAuthDb((db) => {
+            const user = db.users.find((u) => u.id === auth.user.id) || auth.user;
+            const save = getUserSave(db, auth.user.id);
+            const music = getUserMusicLibrary(save, user);
+            const before = music.playlists.length;
+            music.playlists = music.playlists.filter((playlist) => playlist.id !== playlistId);
+            if (music.playlists.length === before) throw new Error('PLAYLIST_NOT_FOUND');
+            return db;
+        });
+
+        return res.json({ ok: true, deletedPlaylistId: playlistId });
+    } catch (error) {
+        if (error.message === 'PLAYLIST_NOT_FOUND') return jsonError(res, 404, 'Playlist not found');
+        return jsonError(res, 500, `Playlist delete failed: ${error.message}`);
+    }
+});
+
+app.post('/api/music/playlists/:playlistId/tracks', async (req, res) => {
+    try {
+        const auth = await getSessionFromRequest(req);
+        if (!auth) return jsonError(res, 401, 'Unauthorized');
+        const playlistId = String(req.params?.playlistId || '').trim();
+        if (!playlistId) return jsonError(res, 400, 'Invalid playlist id');
+        const track = normalizeMusicTrack(req.body?.track);
+        if (!track) return jsonError(res, 400, 'Invalid track payload');
+
+        let playlistView = null;
+        await updateAuthDb((db) => {
+            const user = db.users.find((u) => u.id === auth.user.id) || auth.user;
+            const save = getUserSave(db, auth.user.id);
+            const music = getUserMusicLibrary(save, user);
+            const playlist = music.playlists.find((entry) => entry.id === playlistId);
+            if (!playlist) throw new Error('PLAYLIST_NOT_FOUND');
+            const existingIndex = playlist.tracks.findIndex((entry) => entry.key === track.key);
+            if (existingIndex >= 0) {
+                playlist.tracks[existingIndex] = track;
+            } else {
+                playlist.tracks.push(track);
+            }
+            playlist.updatedAt = Date.now();
+            if (playlist.tracks.length > 500) {
+                playlist.tracks = playlist.tracks.slice(-500);
+            }
+            playlistView = toPlaylistPublicView(playlist);
+            return db;
+        });
+
+        return res.json({ ok: true, playlist: playlistView });
+    } catch (error) {
+        if (error.message === 'PLAYLIST_NOT_FOUND') return jsonError(res, 404, 'Playlist not found');
+        return jsonError(res, 500, `Playlist track add failed: ${error.message}`);
+    }
+});
+
+app.delete('/api/music/playlists/:playlistId/tracks/:trackKey', async (req, res) => {
+    try {
+        const auth = await getSessionFromRequest(req);
+        if (!auth) return jsonError(res, 401, 'Unauthorized');
+        const playlistId = String(req.params?.playlistId || '').trim();
+        const trackKey = String(req.params?.trackKey || '').trim();
+        if (!playlistId) return jsonError(res, 400, 'Invalid playlist id');
+        if (!/^[a-z0-9_-]{2,20}:[a-z0-9:_-]{1,140}$/i.test(trackKey)) {
+            return jsonError(res, 400, 'Invalid track key');
+        }
+
+        let playlistView = null;
+        await updateAuthDb((db) => {
+            const user = db.users.find((u) => u.id === auth.user.id) || auth.user;
+            const save = getUserSave(db, auth.user.id);
+            const music = getUserMusicLibrary(save, user);
+            const playlist = music.playlists.find((entry) => entry.id === playlistId);
+            if (!playlist) throw new Error('PLAYLIST_NOT_FOUND');
+            const before = playlist.tracks.length;
+            playlist.tracks = playlist.tracks.filter((entry) => entry.key !== trackKey);
+            if (playlist.tracks.length === before) throw new Error('TRACK_NOT_FOUND');
+            playlist.updatedAt = Date.now();
+            playlistView = toPlaylistPublicView(playlist);
+            return db;
+        });
+
+        return res.json({ ok: true, playlist: playlistView, removedTrackKey: trackKey });
+    } catch (error) {
+        if (error.message === 'PLAYLIST_NOT_FOUND') return jsonError(res, 404, 'Playlist not found');
+        if (error.message === 'TRACK_NOT_FOUND') return jsonError(res, 404, 'Track not found in playlist');
+        return jsonError(res, 500, `Playlist track remove failed: ${error.message}`);
+    }
+});
+
+app.get('/api/music/playlists/public', async (req, res) => {
+    try {
+        const db = await readAuthDb();
+        const usersById = new Map((Array.isArray(db.users) ? db.users : []).map((u) => [u.id, u]));
+        const out = [];
+        for (const [userId, save] of Object.entries(db.saves || {})) {
+            const user = usersById.get(userId);
+            if (!user) continue;
+            const music = getUserMusicLibrary(save, user);
+            for (const playlist of music.playlists) {
+                if (playlist.isPrivate) continue;
+                out.push({
+                    userId,
+                    ownerUsername: playlist.ownerUsername || user.username,
+                    ...toPlaylistPublicView(playlist),
+                });
+            }
+        }
+        out.sort((a, b) => Number(b.updatedAt || 0) - Number(a.updatedAt || 0));
+        return res.json({ ok: true, playlists: out.slice(0, 200) });
+    } catch (error) {
+        return jsonError(res, 500, `Public playlist list failed: ${error.message}`);
+    }
+});
+
 app.get('/api/chat/messages', async (req, res) => {
     try {
         const auth = await getSessionFromRequest(req);
         if (!auth) return jsonError(res, 401, 'Unauthorized');
+        const roomId = normalizeRoomName(req.query?.room || 'lobby') || 'lobby';
+        const roomPassword = String(req.query?.password || '');
         const since = Number.parseInt(String(req.query?.since || '0'), 10) || 0;
         const db = await readAuthDb();
-        const rows = getChatLog(db);
+        const rooms = getChatRooms(db);
+        const room = rooms[roomId];
+        if (!room) return jsonError(res, 404, 'Room not found');
+        if (!canAccessRoom(auth.user, room, roomPassword)) return jsonError(res, 403, 'Invalid room password');
+        const rows = getRoomMessages(db, roomId);
         const filtered = since > 0 ? rows.filter((m) => Number(m.createdAt) > since) : rows;
         const messages = filtered.slice(-120);
-        return res.json({ ok: true, messages, now: Date.now() });
+        return res.json({ ok: true, room: toRoomPublicView(room), messages, now: Date.now() });
     } catch (error) {
         return jsonError(res, 500, `Chat read failed: ${error.message}`);
     }
@@ -599,11 +1260,19 @@ app.post('/api/chat/messages', async (req, res) => {
     try {
         const auth = await getSessionFromRequest(req);
         if (!auth) return jsonError(res, 401, 'Unauthorized');
+        const roomId = normalizeRoomName(req.body?.room || 'lobby') || 'lobby';
+        const roomPassword = String(req.body?.password || '');
         const text = sanitizeChatText(req.body?.text);
         if (!text) return jsonError(res, 400, 'Message text required');
+        const dbBefore = await readAuthDb();
+        const roomsBefore = getChatRooms(dbBefore);
+        const roomBefore = roomsBefore[roomId];
+        if (!roomBefore) return jsonError(res, 404, 'Room not found');
+        if (!canAccessRoom(auth.user, roomBefore, roomPassword)) return jsonError(res, 403, 'Invalid room password');
 
         const message = {
             id: crypto.randomUUID(),
+            roomId,
             userId: auth.user.id,
             username: auth.user.username,
             text,
@@ -611,17 +1280,118 @@ app.post('/api/chat/messages', async (req, res) => {
         };
 
         await updateAuthDb((db) => {
-            const rows = getChatLog(db);
+            const rooms = getChatRooms(db);
+            const room = rooms[roomId];
+            if (!room || !canAccessRoom(auth.user, room, roomPassword)) {
+                throw new Error('ROOM_ACCESS_DENIED');
+            }
+            const rows = getRoomMessages(db, roomId);
             rows.push(message);
             if (rows.length > 500) {
-                db.chat = rows.slice(-500);
+                getChatMessagesMap(db)[roomId] = rows.slice(-500);
             }
+            room.lastMessageAt = message.createdAt;
             return db;
         });
 
         return res.json({ ok: true, message });
     } catch (error) {
+        if (error.message === 'ROOM_ACCESS_DENIED') return jsonError(res, 403, 'Invalid room password');
         return jsonError(res, 500, `Chat send failed: ${error.message}`);
+    }
+});
+
+app.get('/api/chat/rooms', async (req, res) => {
+    try {
+        const auth = await getSessionFromRequest(req);
+        if (!auth) return jsonError(res, 401, 'Unauthorized');
+        const db = await readAuthDb();
+        const rooms = Object.values(getChatRooms(db))
+            .map((room) => toRoomPublicView(room))
+            .sort(sortChatRoomsForList);
+        return res.json({ ok: true, rooms });
+    } catch (error) {
+        return jsonError(res, 500, `Room list failed: ${error.message}`);
+    }
+});
+
+app.post('/api/chat/rooms', async (req, res) => {
+    try {
+        const auth = await getSessionFromRequest(req);
+        if (!auth) return jsonError(res, 401, 'Unauthorized');
+        const roomId = normalizeRoomName(req.body?.name);
+        const isPrivate = Boolean(req.body?.isPrivate);
+        const password = String(req.body?.password || '');
+        if (!roomId || roomId.length < 3) {
+            return jsonError(res, 400, 'Room name must be at least 3 characters.');
+        }
+        if (SYSTEM_CHAT_ROOM_IDS.has(roomId)) return jsonError(res, 409, 'Room name already exists.');
+        if (isPrivate && password.length < 4) {
+            return jsonError(res, 400, 'Private room password must be at least 4 characters.');
+        }
+
+        const now = Date.now();
+        const room = {
+            id: roomId,
+            name: roomId,
+            ownerUserId: auth.user.id,
+            ownerUsername: auth.user.username,
+            isPrivate,
+            createdAt: now,
+            lastMessageAt: now,
+        };
+        if (isPrivate) {
+            room.passwordSalt = createSalt();
+            room.passwordHash = hashPassword(password, room.passwordSalt);
+        }
+
+        await updateAuthDb((db) => {
+            const rooms = getChatRooms(db);
+            if (rooms[roomId]) throw new Error('ROOM_EXISTS');
+            rooms[roomId] = room;
+            getRoomMessages(db, roomId);
+            return db;
+        });
+
+        return res.json({ ok: true, room: toRoomPublicView(room) });
+    } catch (error) {
+        if (error.message === 'ROOM_EXISTS') return jsonError(res, 409, 'Room name already exists.');
+        return jsonError(res, 500, `Room create failed: ${error.message}`);
+    }
+});
+
+app.delete('/api/chat/rooms/:roomId', async (req, res) => {
+    try {
+        const auth = await getSessionFromRequest(req);
+        if (!auth) return jsonError(res, 401, 'Unauthorized');
+        const roomId = normalizeRoomName(req.params?.roomId || '');
+        if (!roomId) return jsonError(res, 400, 'Invalid room id');
+        if (SYSTEM_CHAT_ROOM_IDS.has(roomId)) {
+            return jsonError(res, 403, 'System rooms cannot be deleted.');
+        }
+
+        const db = await readAuthDb();
+        const rooms = getChatRooms(db);
+        const room = rooms[roomId];
+        if (!room) return jsonError(res, 404, 'Room not found');
+        if (!canDeleteRoom(auth.user, room)) return jsonError(res, 403, 'Not allowed to delete this room');
+
+        await updateAuthDb((nextDb) => {
+            const nextRooms = getChatRooms(nextDb);
+            const nextRoom = nextRooms[roomId];
+            if (!nextRoom) throw new Error('ROOM_NOT_FOUND');
+            if (!canDeleteRoom(auth.user, nextRoom)) throw new Error('ROOM_DELETE_DENIED');
+            delete nextRooms[roomId];
+            const messagesMap = getChatMessagesMap(nextDb);
+            delete messagesMap[roomId];
+            return nextDb;
+        });
+
+        return res.json({ ok: true, deletedRoomId: roomId });
+    } catch (error) {
+        if (error.message === 'ROOM_NOT_FOUND') return jsonError(res, 404, 'Room not found');
+        if (error.message === 'ROOM_DELETE_DENIED') return jsonError(res, 403, 'Not allowed to delete this room');
+        return jsonError(res, 500, `Room delete failed: ${error.message}`);
     }
 });
 
@@ -748,9 +1518,42 @@ app.use((req, res, next) => {
 
 // Proxy endpoint
 app.all('/proxy', async (req, res) => {
-    const targetUrl = req.query.url;
+    let targetUrl = req.query.url;
 
     if (!targetUrl) {
+        // Some proxied pages submit relative GET forms to the current /proxy URL
+        // (e.g. /proxy?name=foo). Recover the upstream target from referer.
+        const referer = String(req.get('referer') || '').trim();
+        try {
+            const refUrl = new URL(referer);
+            if (refUrl.pathname === '/proxy') {
+                const refTargetRaw = refUrl.searchParams.get('url');
+                if (refTargetRaw) {
+                    let recovered;
+                    try {
+                        recovered = new URL(refTargetRaw);
+                    } catch {
+                        recovered = new URL(encodeURI(refTargetRaw));
+                    }
+                    const incomingQuery = new URLSearchParams(req.query || {});
+                    incomingQuery.delete('url');
+                    // Myinstants search forms often submit only "?name=...".
+                    // Route these to the site's native search endpoint.
+                    if (
+                        incomingQuery.has('name') &&
+                        /(^|\.)myinstants\.com$/i.test(String(recovered.hostname || '')) &&
+                        /^\/en\/categories\//i.test(String(recovered.pathname || ''))
+                    ) {
+                        recovered.pathname = '/en/search/';
+                    }
+                    const nextQuery = incomingQuery.toString();
+                    recovered.search = nextQuery ? `?${nextQuery}` : '';
+                    return res.redirect(302, `/proxy?url=${encodeURIComponent(recovered.href)}`);
+                }
+            }
+        } catch {
+            // Fall through to default 400 when recover is not possible.
+        }
         return res.status(400).send('URL parameter is required');
     }
 
