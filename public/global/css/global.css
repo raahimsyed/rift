@@ -147,6 +147,41 @@ body.rift-boot-active {
   margin-top: 7px;
 }
 
+.rift-boot-terminal {
+  width: min(640px, 80vw);
+  min-height: 180px;
+  margin: 18px auto 0;
+  padding: 12px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 10px;
+  background: rgba(1, 3, 6, 0.72);
+  box-shadow: 0 0 0 1px rgba(142, 203, 255, 0.18), 0 16px 30px rgba(0, 0, 0, 0.45);
+  text-align: left;
+  position: relative;
+}
+
+.rift-boot-terminal-output {
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+  color: rgba(208, 242, 255, 0.92);
+  font-family: Consolas, "Courier New", monospace;
+  font-size: clamp(11px, 1.7vw, 13px);
+  line-height: 1.45;
+  min-height: 150px;
+}
+
+.rift-boot-terminal-caret {
+  position: absolute;
+  bottom: 14px;
+  left: 14px;
+  width: 8px;
+  height: 14px;
+  background: var(--rift-accent);
+  box-shadow: 0 0 12px var(--rift-accent-soft);
+  animation: bootCaret 0.95s step-end infinite;
+}
+
 @keyframes bootRise {
   from { opacity: 0; transform: translateY(22px) scale(0.985); }
   to { opacity: 1; transform: translateY(0) scale(1); }
@@ -155,6 +190,11 @@ body.rift-boot-active {
 @keyframes bootGridPan {
   from { background-position: 0 0, 0 0; }
   to { background-position: 0 42px, 42px 0; }
+}
+
+@keyframes bootCaret {
+  0%, 48% { opacity: 1; }
+  49%, 100% { opacity: 0.15; }
 }
 
 body > * {

@@ -51,9 +51,63 @@ window.RiftAppearance = {
 
 const RIFT_BOOT = {
     SESSION_KEY: 'rift__boot-screen-shown-v1',
-    DISPLAY_MS: 1750,
+    DISPLAY_MS: 10000,
     FADE_MS: 520,
 };
+
+function runRiftBootTerminal(bootRoot) {
+    const output = bootRoot.querySelector('.rift-boot-terminal-output');
+    if (!output) return () => {};
+
+    const lines = [
+        'rift@boot:~$ uname -sr',
+        'Linux 6.8.0-rift',
+        'rift@boot:~$ systemctl start scramjet.service',
+        '[  ok  ] scramjet transport online',
+        'rift@boot:~$ ./init-rift --profile infamous',
+        '[  ok  ] powered by scramjet',
+        '[  ok  ] inspired by infamous',
+        'rift@boot:~$ launch rift',
+        '[ done ] boot sequence complete',
+        'rift$'
+    ];
+
+    let stopped = false;
+    const timers = [];
+    let lineIndex = 0;
+    let charIndex = 0;
+
+    function schedule(fn, delay) {
+        const timer = window.setTimeout(() => {
+            if (!stopped) fn();
+        }, delay);
+        timers.push(timer);
+    }
+
+    function step() {
+        if (lineIndex >= lines.length) return;
+
+        const current = lines[lineIndex];
+        if (charIndex < current.length) {
+            output.textContent += current.charAt(charIndex);
+            charIndex += 1;
+            schedule(step, 20 + Math.floor(Math.random() * 16));
+            return;
+        }
+
+        output.textContent += '\n';
+        lineIndex += 1;
+        charIndex = 0;
+        schedule(step, 190);
+    }
+
+    schedule(step, 220);
+
+    return () => {
+        stopped = true;
+        for (const timer of timers) window.clearTimeout(timer);
+    };
+}
 
 function mountRiftBootScreen() {
     if (!document.body) return;
@@ -69,17 +123,23 @@ function mountRiftBootScreen() {
             <div class="rift-boot-logo">rift</div>
             <div class="rift-boot-subtitle">powered by scramjet</div>
             <div class="rift-boot-subtitle">inspired by infamous</div>
+            <div class="rift-boot-terminal" aria-hidden="true">
+                <pre class="rift-boot-terminal-output"></pre>
+                <span class="rift-boot-terminal-caret"></span>
+            </div>
         </div>
     `;
 
     document.body.classList.add('rift-boot-active');
     document.body.appendChild(boot);
+    const stopTerminal = runRiftBootTerminal(boot);
 
     requestAnimationFrame(() => {
         boot.classList.add('is-visible');
     });
 
     window.setTimeout(() => {
+        stopTerminal();
         boot.classList.add('is-exiting');
         document.body.classList.remove('rift-boot-active');
         window.setTimeout(() => boot.remove(), RIFT_BOOT.FADE_MS);
