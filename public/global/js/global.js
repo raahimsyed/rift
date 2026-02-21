@@ -49,6 +49,49 @@ window.RiftAppearance = {
     },
 };
 
+const RIFT_BOOT = {
+    SESSION_KEY: 'rift__boot-screen-shown-v1',
+    DISPLAY_MS: 1750,
+    FADE_MS: 520,
+};
+
+function mountRiftBootScreen() {
+    if (!document.body) return;
+    if (sessionStorage.getItem(RIFT_BOOT.SESSION_KEY) === 'true') return;
+    sessionStorage.setItem(RIFT_BOOT.SESSION_KEY, 'true');
+
+    const boot = document.createElement('div');
+    boot.className = 'rift-boot-screen';
+    boot.setAttribute('aria-hidden', 'true');
+    boot.innerHTML = `
+        <div class="rift-boot-grid"></div>
+        <div class="rift-boot-content">
+            <div class="rift-boot-logo">rift</div>
+            <div class="rift-boot-subtitle">powered by scramjet</div>
+            <div class="rift-boot-subtitle">inspired by infamous</div>
+        </div>
+    `;
+
+    document.body.classList.add('rift-boot-active');
+    document.body.appendChild(boot);
+
+    requestAnimationFrame(() => {
+        boot.classList.add('is-visible');
+    });
+
+    window.setTimeout(() => {
+        boot.classList.add('is-exiting');
+        document.body.classList.remove('rift-boot-active');
+        window.setTimeout(() => boot.remove(), RIFT_BOOT.FADE_MS);
+    }, RIFT_BOOT.DISPLAY_MS);
+}
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', mountRiftBootScreen, { once: true });
+} else {
+    mountRiftBootScreen();
+}
+
 document.addEventListener('DOMContentLoaded', function () {
     const typingText = document.getElementById('typingText');
 

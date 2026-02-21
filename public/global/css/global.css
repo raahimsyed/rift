@@ -82,6 +82,81 @@ body.theme-graphite { --rift-bg-base:#111213; --rift-bg-glow-1:rgba(140,140,150,
 body.theme-neon { --rift-bg-base:#040f07; --rift-bg-glow-1:rgba(16,255,164,0.24); --rift-bg-glow-2:rgba(12,130,94,0.2); --rift-accent:#38ffc1; --rift-accent-soft:rgba(56,255,193,0.3); }
 body.theme-cobalt { --rift-bg-base:#080d1e; --rift-bg-glow-1:rgba(76,121,255,0.28); --rift-bg-glow-2:rgba(39,70,160,0.22); --rift-accent:#85aaff; --rift-accent-soft:rgba(133,170,255,0.28); }
 
+body.rift-boot-active {
+  pointer-events: none;
+}
+
+.rift-boot-screen {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background:
+    radial-gradient(900px 500px at 50% 0%, var(--rift-accent-soft), transparent 65%),
+    rgba(2, 3, 5, 0.96);
+  opacity: 0;
+  transition: opacity 0.52s ease;
+  z-index: 20000;
+  overflow: hidden;
+}
+
+.rift-boot-screen.is-visible {
+  opacity: 1;
+}
+
+.rift-boot-screen.is-exiting {
+  opacity: 0;
+}
+
+.rift-boot-grid {
+  position: absolute;
+  inset: -10%;
+  background:
+    linear-gradient(rgba(255, 255, 255, 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+  background-size: 42px 42px;
+  transform: perspective(680px) rotateX(66deg) scale(1.2);
+  transform-origin: center bottom;
+  opacity: 0.35;
+  animation: bootGridPan 3s linear infinite;
+}
+
+.rift-boot-content {
+  position: relative;
+  text-align: center;
+  color: var(--rift-text);
+  text-transform: lowercase;
+  letter-spacing: 0.08em;
+  transform: translateY(8px);
+  animation: bootRise 0.6s ease forwards;
+}
+
+.rift-boot-logo {
+  font-size: clamp(52px, 11vw, 118px);
+  line-height: 1;
+  text-shadow:
+    0 0 28px var(--rift-accent-soft),
+    0 0 56px var(--rift-accent-soft);
+  margin-bottom: 12px;
+}
+
+.rift-boot-subtitle {
+  font-size: clamp(12px, 2.2vw, 17px);
+  color: var(--rift-text-dim);
+  margin-top: 7px;
+}
+
+@keyframes bootRise {
+  from { opacity: 0; transform: translateY(22px) scale(0.985); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes bootGridPan {
+  from { background-position: 0 0, 0 0; }
+  to { background-position: 0 42px, 42px 0; }
+}
+
 body > * {
   position: relative;
   z-index: 1;
