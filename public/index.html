@@ -222,6 +222,19 @@
     </div>
 </div>
 
+<div id="experience-popup" class="modal">
+    <div class="modal-content">
+        <h3>rift</h3>
+        <p style="margin: 8px 0 14px; color: rgba(255, 255, 255, 0.72); font-size: 13px; letter-spacing: 0.06em; text-transform: lowercase;">
+            choose your experience
+        </p>
+        <div class="modal-buttons" style="margin-top: 10px; gap: 10px;">
+            <button id="experience-games" class="save-btn" style="flex: 1;">games</button>
+            <button id="experience-rift" class="save-btn" style="flex: 1; background: rgba(255,255,255,0.12); border-color: rgba(255,255,255,0.25);">rift</button>
+        </div>
+    </div>
+</div>
+    
     <script src="/config.js"></script>
     <script src="./global/js/ads.js"></script>
     <script src="./global/js/global.js"></script>
@@ -242,14 +255,18 @@
     // What's New popup (shows once per session)
     document.addEventListener('DOMContentLoaded', () => {
         const WHATS_NEW_KEY = 'rift__whats-new-seen-v2';
-        const params = new URLSearchParams(location.search);
-        const forceRift = params.get('mode') === 'rift';
+        const EXPERIENCE_KEY = 'rift__experience-picked-v1';
         const popup = document.getElementById('whats-new-popup');
         const closeBtn = document.getElementById('whats-new-close');
-        if (forceRift) {
-            if (popup) popup.classList.remove('active');
-            return;
-        }
+        const expPopup = document.getElementById('experience-popup');
+        const expGames = document.getElementById('experience-games');
+        const expRift = document.getElementById('experience-rift');
+
+        const showExperiencePicker = () => {
+            if (!expPopup) return;
+            if (sessionStorage.getItem(EXPERIENCE_KEY) === 'true') return;
+            expPopup.classList.add('active');
+        };
         
         // Check if user has seen popup this session
         const seenThisSession = sessionStorage.getItem(WHATS_NEW_KEY);
@@ -263,24 +280,36 @@
             // Mark as seen for this session
             sessionStorage.setItem(WHATS_NEW_KEY, 'true');
         } else {
-            setTimeout(() => {
-                location.href = '/options.html';
-            }, 220);
+            setTimeout(showExperiencePicker, 220);
         }
         
         // Close popup
         closeBtn.addEventListener('click', () => {
             popup.classList.remove('active');
-            location.href = '/options.html';
+            showExperiencePicker();
         });
         
         // Close on backdrop click
         popup.addEventListener('click', (e) => {
             if (e.target === popup) {
                 popup.classList.remove('active');
-                location.href = '/options.html';
+                showExperiencePicker();
             }
         });
+
+        if (expGames) {
+            expGames.addEventListener('click', () => {
+                sessionStorage.setItem(EXPERIENCE_KEY, 'true');
+                location.href = '/games?view=games-only';
+            });
+        }
+
+        if (expRift) {
+            expRift.addEventListener('click', () => {
+                sessionStorage.setItem(EXPERIENCE_KEY, 'true');
+                expPopup.classList.remove('active');
+            });
+        }
     });
 </script>
 
