@@ -148,17 +148,32 @@ function mountRiftBootScreen() {
         terminalStage.classList.remove('is-active');
         welcomeStage.classList.add('is-active');
     });
+    let dismissed = false;
+    let dismissTimer = null;
+
+    function onBootKeyDown(event) {
+        if (event.key !== 'Tab') return;
+        event.preventDefault();
+        dismiss();
+    }
+
+    function dismiss() {
+        if (dismissed) return;
+        dismissed = true;
+        if (dismissTimer) window.clearTimeout(dismissTimer);
+        stopTerminal();
+        document.removeEventListener('keydown', onBootKeyDown, true);
+        boot.classList.add('is-exiting');
+        document.body.classList.remove('rift-boot-active');
+        window.setTimeout(() => boot.remove(), RIFT_BOOT.FADE_MS);
+    }
 
     requestAnimationFrame(() => {
         boot.classList.add('is-visible');
     });
 
-    window.setTimeout(() => {
-        stopTerminal();
-        boot.classList.add('is-exiting');
-        document.body.classList.remove('rift-boot-active');
-        window.setTimeout(() => boot.remove(), RIFT_BOOT.FADE_MS);
-    }, RIFT_BOOT.DISPLAY_MS);
+    document.addEventListener('keydown', onBootKeyDown, true);
+    dismissTimer = window.setTimeout(dismiss, RIFT_BOOT.DISPLAY_MS);
 }
 
 if (document.readyState === 'loading') {
