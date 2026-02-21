@@ -124,16 +124,42 @@ body.rift-boot-active {
 
 .rift-boot-content {
   position: relative;
+  width: min(760px, 88vw);
+  min-height: 360px;
   text-align: center;
   color: var(--rift-text);
   text-transform: lowercase;
   letter-spacing: 0.08em;
-  transform: translateY(8px);
   animation: bootRise 0.6s ease forwards;
 }
 
+.rift-boot-stage {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  opacity: 0;
+  transform: translateY(8px) scale(0.99);
+  transition: opacity 0.45s ease, transform 0.45s ease;
+  pointer-events: none;
+}
+
+.rift-boot-stage.is-active {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+}
+
+.rift-boot-terminal-title {
+  font-size: clamp(11px, 1.9vw, 14px);
+  color: rgba(220, 242, 255, 0.86);
+  letter-spacing: 0.16em;
+  margin-bottom: 12px;
+}
+
 .rift-boot-logo {
-  font-size: clamp(52px, 11vw, 118px);
+  font-size: clamp(38px, 8.4vw, 86px);
   line-height: 1;
   text-shadow:
     0 0 28px var(--rift-accent-soft),
@@ -149,8 +175,8 @@ body.rift-boot-active {
 
 .rift-boot-terminal {
   width: min(640px, 80vw);
-  min-height: 180px;
-  margin: 18px auto 0;
+  min-height: 220px;
+  margin: 0 auto;
   padding: 12px 14px;
   border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 10px;
@@ -168,7 +194,9 @@ body.rift-boot-active {
   font-family: Consolas, "Courier New", monospace;
   font-size: clamp(11px, 1.7vw, 13px);
   line-height: 1.45;
-  min-height: 150px;
+  min-height: 190px;
+  max-height: 220px;
+  overflow: auto;
 }
 
 .rift-boot-terminal-caret {

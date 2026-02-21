@@ -55,24 +55,23 @@ const RIFT_BOOT = {
     FADE_MS: 520,
 };
 
-function runRiftBootTerminal(bootRoot) {
+function runRiftBootTerminal(bootRoot, onLoadingShown) {
     const output = bootRoot.querySelector('.rift-boot-terminal-output');
     if (!output) return () => {};
 
     const lines = [
-        'rift@boot:~$ uname -sr',
-        'Linux 6.8.0-rift',
-        'rift@boot:~$ systemctl start scramjet.service',
-        '[  ok  ] scramjet transport online',
-        'rift@boot:~$ ./init-rift --profile infamous',
-        '[  ok  ] powered by scramjet',
-        '[  ok  ] inspired by infamous',
-        'rift@boot:~$ launch rift',
-        '[ done ] boot sequence complete',
-        'rift$'
+        'grub rescue> ls',
+        '(hd0) (hd0,gpt1)',
+        'grub rescue> set prefix=(hd0,gpt1)/boot/grub',
+        'grub rescue> set root=(hd0,gpt1)',
+        'grub rescue> insmod normal',
+        'grub rescue> normal',
+        'booting rift kernel...',
+        'rift loading...'
     ];
 
     let stopped = false;
+    let loadingNotified = false;
     const timers = [];
     let lineIndex = 0;
     let charIndex = 0;
@@ -96,6 +95,11 @@ function runRiftBootTerminal(bootRoot) {
         }
 
         output.textContent += '\n';
+        output.scrollTop = output.scrollHeight;
+        if (!loadingNotified && current === 'rift loading...') {
+            loadingNotified = true;
+            if (typeof onLoadingShown === 'function') onLoadingShown();
+        }
         lineIndex += 1;
         charIndex = 0;
         schedule(step, 190);
@@ -120,19 +124,30 @@ function mountRiftBootScreen() {
     boot.innerHTML = `
         <div class="rift-boot-grid"></div>
         <div class="rift-boot-content">
-            <div class="rift-boot-logo">Welcome to Rift</div>
-            <div class="rift-boot-subtitle">powered by scramjet</div>
-            <div class="rift-boot-subtitle">inspired by infamous</div>
-            <div class="rift-boot-terminal" aria-hidden="true">
-                <pre class="rift-boot-terminal-output"></pre>
-                <span class="rift-boot-terminal-caret"></span>
+            <div class="rift-boot-stage rift-boot-stage-terminal is-active">
+                <div class="rift-boot-terminal-title">grub rescue mode</div>
+                <div class="rift-boot-terminal" aria-hidden="true">
+                    <pre class="rift-boot-terminal-output"></pre>
+                    <span class="rift-boot-terminal-caret"></span>
+                </div>
+            </div>
+            <div class="rift-boot-stage rift-boot-stage-welcome">
+                <div class="rift-boot-logo">Welcome to Rift</div>
+                <div class="rift-boot-subtitle">powered by scramjet</div>
+                <div class="rift-boot-subtitle">inspired by infamous</div>
             </div>
         </div>
     `;
 
     document.body.classList.add('rift-boot-active');
     document.body.appendChild(boot);
-    const stopTerminal = runRiftBootTerminal(boot);
+    const terminalStage = boot.querySelector('.rift-boot-stage-terminal');
+    const welcomeStage = boot.querySelector('.rift-boot-stage-welcome');
+    const stopTerminal = runRiftBootTerminal(boot, () => {
+        if (!terminalStage || !welcomeStage) return;
+        terminalStage.classList.remove('is-active');
+        welcomeStage.classList.add('is-active');
+    });
 
     requestAnimationFrame(() => {
         boot.classList.add('is-visible');
