@@ -153,6 +153,10 @@ body.rift-boot-active {
   transform: translateY(0) scale(1);
 }
 
+.rift-boot-stage-welcome {
+  justify-content: center;
+}
+
 .rift-boot-terminal-title {
   font-size: clamp(11px, 1.9vw, 14px);
   color: rgba(220, 242, 255, 0.86);
@@ -175,6 +179,18 @@ body.rift-boot-active {
   color: var(--rift-text-dim);
   margin-top: 7px;
   transition: opacity 0.45s ease;
+}
+
+.rift-boot-cta {
+  position: absolute;
+  left: 50%;
+  bottom: 24px;
+  transform: translateX(-50%);
+  font-size: clamp(11px, 1.8vw, 14px);
+  letter-spacing: 0.14em;
+  color: rgba(232, 246, 255, 0.88);
+  text-transform: lowercase;
+  animation: bootBlink 1.25s ease-in-out infinite;
 }
 
 .rift-boot-terminal {
@@ -227,6 +243,11 @@ body.rift-boot-active {
 @keyframes bootGlow {
   0%, 100% { text-shadow: 0 0 22px var(--rift-accent-soft), 0 0 46px var(--rift-accent-soft); }
   50% { text-shadow: 0 0 30px var(--rift-accent-soft), 0 0 74px var(--rift-accent-soft); }
+}
+
+@keyframes bootBlink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.25; }
 }
 
 @keyframes bootCaret {

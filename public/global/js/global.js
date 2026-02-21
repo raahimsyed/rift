@@ -51,7 +51,6 @@ window.RiftAppearance = {
 
 const RIFT_BOOT = {
     SESSION_KEY: 'rift__boot-screen-shown-v1',
-    DISPLAY_MS: 10000,
     FADE_MS: 520,
 };
 
@@ -135,6 +134,7 @@ function mountRiftBootScreen() {
                 <div class="rift-boot-logo">Welcome to Rift</div>
                 <div class="rift-boot-subtitle">powered by scramjet</div>
                 <div class="rift-boot-subtitle">inspired by infamous</div>
+                <div class="rift-boot-cta">press space to jump in</div>
             </div>
         </div>
     `;
@@ -143,24 +143,30 @@ function mountRiftBootScreen() {
     document.body.appendChild(boot);
     const terminalStage = boot.querySelector('.rift-boot-stage-terminal');
     const welcomeStage = boot.querySelector('.rift-boot-stage-welcome');
+    let inWelcomeStage = false;
     const stopTerminal = runRiftBootTerminal(boot, () => {
         if (!terminalStage || !welcomeStage) return;
         terminalStage.classList.remove('is-active');
         welcomeStage.classList.add('is-active');
+        inWelcomeStage = true;
     });
     let dismissed = false;
-    let dismissTimer = null;
 
     function onBootKeyDown(event) {
-        if (event.key !== 'Tab') return;
-        event.preventDefault();
-        dismiss();
+        if (event.key === 'Tab') {
+            event.preventDefault();
+            dismiss();
+            return;
+        }
+        if ((event.key === ' ' || event.code === 'Space') && inWelcomeStage) {
+            event.preventDefault();
+            dismiss();
+        }
     }
 
     function dismiss() {
         if (dismissed) return;
         dismissed = true;
-        if (dismissTimer) window.clearTimeout(dismissTimer);
         stopTerminal();
         document.removeEventListener('keydown', onBootKeyDown, true);
         boot.classList.add('is-exiting');
@@ -173,7 +179,6 @@ function mountRiftBootScreen() {
     });
 
     document.addEventListener('keydown', onBootKeyDown, true);
-    dismissTimer = window.setTimeout(dismiss, RIFT_BOOT.DISPLAY_MS);
 }
 
 if (document.readyState === 'loading') {
