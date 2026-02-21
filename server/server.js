@@ -28,7 +28,10 @@ const SDXP_HTML_ROOT = path.join(__dirname, '..', 'public', 'sdxp', 'html');
 const DUCKMATH_GAMES_PAGE = 'https://cdn.jsdelivr.net/gh/Divij-Agarwal-42/duckmath.github.io@main/g4m3s.html';
 const DUCKMATH_BASE = 'https://cdn.jsdelivr.net/gh/Divij-Agarwal-42/duckmath.github.io@main/';
 const TRUFFLED_GAMES_JSON = 'https://truffled.lol/js/json/g.json';
+const TRUFFLED_LOCAL_JSON = path.join(__dirname, '..', 'truffled.g.json');
 const TRUFFLED_BASE = 'https://truffled.lol/';
+const TRUFFLED_ROOT_MANIFEST = path.join(__dirname, '..', 'data', 'truffled-root-manifest.json');
+const TOTALLY_SCIENCE_BASE = 'https://d11jzht7mj96rr.cloudfront.net/';
 const VELARA_GAMES_JSON = 'https://velara.my/data/games.json';
 const VELARA_BASE = 'https://velara.my/';
 const VELARA_ORIGIN = 'https://velara.my';
@@ -105,6 +108,29 @@ function humanizeFolderName(folder) {
         .replace(/\s+/g, ' ')
         .trim()
         .replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+function toTruffledLocalSlug(input) {
+    return String(input || '')
+        .trim()
+        .replace(/^\/+/, '')
+        .replace(/[?#].*$/, '')
+        .replace(/\.html?$/i, '')
+        .replace(/[^a-z0-9/_\-\.]+/gi, '-')
+        .replace(/\/+/g, '/')
+        .replace(/^-+|-+$/g, '')
+        .replace(/\//g, '__');
+}
+
+async function readTruffledRootMap() {
+    try {
+        const raw = await fs.readFile(TRUFFLED_ROOT_MANIFEST, 'utf8');
+        const parsed = JSON.parse(raw);
+        const map = parsed?.map && typeof parsed.map === 'object' ? parsed.map : {};
+        return map;
+    } catch {
+        return {};
+    }
 }
 
 async function pickSdxpCover(indexFile) {
@@ -764,10 +790,17 @@ app.get('/api/auth/ping', async (req, res) => {
 });
 
 app.get('/api/stats/users', async (req, res) => {
+    const now = Date.now();
+    const activeTabs = countActivePresence(now);
+
+    let totalUsers = 0;
+    let activeSignedInUsers = 0;
+    let dbAvailable = true;
+
     try {
-        const now = Date.now();
         const db = await readAuthDb();
-        const totalUsers = Array.isArray(db.users) ? db.users.length : 0;
+        totalUsers = Array.isArray(db.users) ? db.users.length : 0;
+
         const activeUserIds = new Set();
         const sessions = Array.isArray(db.sessions) ? db.sessions : [];
         for (const session of sessions) {
@@ -777,18 +810,21 @@ app.get('/api/stats/users', async (req, res) => {
                 activeUserIds.add(session.userId);
             }
         }
-        const activeTabs = countActivePresence(now);
-        return res.json({
-            ok: true,
-            totalUsers,
-            activeUsers: activeTabs,
-            activeWindowMs: ACTIVE_USER_WINDOW_MS,
-            activeTabs,
-            activeSignedInUsers: activeUserIds.size,
-        });
+        activeSignedInUsers = activeUserIds.size;
     } catch (error) {
-        return jsonError(res, 500, `User stats failed: ${error.message}`);
+        dbAvailable = false;
+        console.warn('User stats fallback (db unavailable):', error.message);
     }
+
+    return res.json({
+        ok: true,
+        totalUsers,
+        activeUsers: activeTabs,
+        activeWindowMs: ACTIVE_USER_WINDOW_MS,
+        activeTabs,
+        activeSignedInUsers,
+        dbAvailable,
+    });
 });
 
 app.post('/api/presence/ping', async (req, res) => {
@@ -1398,6 +1434,19 @@ app.delete('/api/chat/rooms/:roomId', async (req, res) => {
 // Fallback for runtime same-origin asset requests emitted from proxied pages
 // (e.g. Unity/WebGL games requesting /media/* or font files).
 app.all('*', async (req, res, next) => {
+    // Some proxied pages emit malformed same-origin requests like:
+    // /cdn.jsdelivr.net/proxy?url=https://truffled.lol/...
+    // Normalize these back into the real /proxy endpoint.
+    const hostPrefixedProxy = String(req.path || '').match(/^\/([a-z0-9.-]+\.[a-z]{2,})\/proxy$/i);
+    if (hostPrefixedProxy) {
+        const nested = String(req.query?.url || '').trim();
+        if (nested) {
+            return res.redirect(302, `/proxy?url=${encodeURIComponent(nested)}`);
+        }
+        const host = hostPrefixedProxy[1];
+        return res.redirect(302, `/proxy?url=${encodeURIComponent(`https://${host}/`)}`);
+    }
+
     const upstreamRef = parseProxyUpstreamFromReferer(req);
     if (!upstreamRef) return next();
 
@@ -1520,6 +1569,87 @@ app.use((req, res, next) => {
 app.all('/proxy', async (req, res) => {
     let targetUrl = req.query.url;
 
+    const unwrapNestedProxyTarget = (rawValue) => {
+        let current = String(rawValue || '').trim();
+        for (let i = 0; i < 4; i++) {
+            if (!current) break;
+            try {
+                // Handle absolute nested proxy URLs (e.g. https://host/proxy?url=...)
+                const parsed = new URL(current);
+                if (parsed.pathname === '/proxy' && parsed.searchParams.get('url')) {
+                    current = parsed.searchParams.get('url');
+                    continue;
+                }
+                break;
+            } catch {
+                // Handle relative nested proxy URLs (e.g. /proxy?url=...)
+                if (current.startsWith('/proxy?url=')) {
+                    try {
+                        const rel = new URL(current, `http://${req.headers.host || 'localhost'}`);
+                        const inner = rel.searchParams.get('url');
+                        if (inner) {
+                            current = inner;
+                            continue;
+                        }
+                    } catch {}
+                }
+
+                // Handle host-prefixed nested proxy values without scheme:
+                // cdn.jsdelivr.net/proxy?url=https://...
+                const hostPrefixed = current.match(/^([a-z0-9.-]+\.[a-z]{2,})\/proxy\?url=(.+)$/i);
+                if (hostPrefixed) {
+                    try {
+                        current = decodeURIComponent(hostPrefixed[2]);
+                    } catch {
+                        current = hostPrefixed[2];
+                    }
+                    continue;
+                }
+                break;
+            }
+        }
+        return current;
+    };
+
+    targetUrl = unwrapNestedProxyTarget(targetUrl);
+
+    if (!targetUrl) {
+        // Recover malformed query shapes:
+        // - /proxy?https://example.com
+        // - /proxy?u=https://example.com
+        // - /proxy?cdn.jsdelivr.net/proxy?url=https://...
+        const rawQuery = req.url.includes('?') ? req.url.slice(req.url.indexOf('?') + 1) : '';
+        if (rawQuery) {
+            let decoded = rawQuery;
+            try { decoded = decodeURIComponent(rawQuery); } catch {}
+            if (/^https?:\/\//i.test(decoded)) {
+                targetUrl = decoded;
+            } else {
+                const loose = new URLSearchParams(rawQuery);
+                const alt =
+                    loose.get('u') ||
+                    loose.get('target') ||
+                    loose.get('dest') ||
+                    loose.get('href') ||
+                    '';
+                if (alt && /^https?:\/\//i.test(alt)) {
+                    targetUrl = alt;
+                } else {
+                    for (const key of loose.keys()) {
+                        if (/^https?:\/\//i.test(key)) {
+                            targetUrl = key;
+                            break;
+                        }
+                    }
+                    if (!targetUrl && /^[a-z0-9.-]+\.[a-z]{2,}\/proxy\?url=/i.test(decoded)) {
+                        targetUrl = decoded;
+                    }
+                }
+            }
+            targetUrl = unwrapNestedProxyTarget(targetUrl);
+        }
+    }
+
     if (!targetUrl) {
         // Some proxied pages submit relative GET forms to the current /proxy URL
         // (e.g. /proxy?name=foo). Recover the upstream target from referer.
@@ -1554,10 +1684,27 @@ app.all('/proxy', async (req, res) => {
         } catch {
             // Fall through to default 400 when recover is not possible.
         }
+        if ((req.method || 'GET').toUpperCase() === 'GET') {
+            // Suppress noisy empty /proxy GETs from worker/runtime probes.
+            return res.status(204).end();
+        }
         return res.status(400).send('URL parameter is required');
     }
 
     try {
+        // Truffled games rely on root-relative assets/scripts that break behind proxy.
+        // Force those launches onto Truffled's own iframe loader instead.
+        try {
+            const parsedTarget = new URL(String(targetUrl));
+            if (/(^|\.)truffled\.lol$/i.test(parsedTarget.hostname) &&
+                /^\/games\/.+\/index\.html$/i.test(parsedTarget.pathname) &&
+                !/\/iframe\.html$/i.test(parsedTarget.pathname)) {
+                const embedded = `${parsedTarget.pathname}${parsedTarget.search}${parsedTarget.hash}` || '/';
+                const redirectUrl = `https://truffled.lol/iframe.html?url=${encodeURIComponent(embedded)}`;
+                return res.redirect(302, redirectUrl);
+            }
+        } catch {}
+
         const method = req.method || 'GET';
         const upperMethod = method.toUpperCase();
         const isBodyMethod = !['GET', 'HEAD'].includes(upperMethod);
@@ -1728,6 +1875,19 @@ app.all('/proxy', async (req, res) => {
             }
         }
 
+        // Truffled iframe pages use href="javascript:void(0)" for popout, which looks broken.
+        // Keep their click behavior, but expose a real href so hover/status shows a usable URL.
+        try {
+            if (/(^|\.)truffled\.lol$/i.test(parsedTargetUrl.hostname) && /^\/iframe\.html$/i.test(parsedTargetUrl.pathname)) {
+                const truffledPopoutScript = '<script id="rift-truffled-popout-link">(function(){function sync(){var btn=document.getElementById("aboutblank");var frame=document.getElementById("gameframe");if(!btn||!frame)return;var src=String(frame.src||"").trim();if(!src||/\\/404\\.html(?:$|\\?)/i.test(src))return;btn.setAttribute("href",src);btn.setAttribute("target","_blank");btn.setAttribute("rel","noopener noreferrer");}document.addEventListener("DOMContentLoaded",sync);setInterval(sync,800);})();</script>';
+                if (/<\/body>/i.test(modifiedContent)) {
+                    modifiedContent = modifiedContent.replace(/<\/body>/i, `${truffledPopoutScript}</body>`);
+                } else {
+                    modifiedContent += truffledPopoutScript;
+                }
+            }
+        } catch {}
+
         res.setHeader('Content-Type', 'text/html; charset=utf-8');
         const setCookie = response.headers.get('set-cookie');
         if (setCookie) res.setHeader('Set-Cookie', setCookie);
@@ -1804,12 +1964,21 @@ app.get('/duckmath-catalog', async (_req, res) => {
 // Build Truffled catalog from public games page.
 app.get('/truffled-catalog', async (_req, res) => {
     try {
-        const response = await fetch(TRUFFLED_GAMES_JSON);
-        if (!response.ok) {
-            return res.status(502).json({ error: `truffled fetch failed: ${response.status}` });
+        let payload = null;
+        try {
+            const response = await fetch(TRUFFLED_GAMES_JSON);
+            if (response.ok) {
+                payload = await response.json();
+            }
+        } catch {
+            // Fall back to local snapshot when remote source is unavailable.
+        }
+        if (!payload) {
+            const localRaw = await fs.readFile(TRUFFLED_LOCAL_JSON, 'utf8');
+            payload = JSON.parse(localRaw);
         }
 
-        const payload = await response.json();
+        const rootMap = await readTruffledRootMap();
         const rows = Array.isArray(payload?.games) ? payload.games : [];
         const items = [];
         const seen = new Set();
@@ -1824,10 +1993,13 @@ app.get('/truffled-catalog', async (_req, res) => {
 
             const normalized = href.replace(/^\/+/, '');
             const normalizedThumb = thumbnail.replace(/^\/+/, '');
+            const localSlug = toTruffledLocalSlug(normalized);
+            const mappedFile = String(rootMap[normalized] || '').trim();
+            const mappedUrl = mappedFile ? `/${mappedFile.replace(/^\/+/, '')}` : '';
             items.push({
                 id: `truffled-${normalized}`,
                 name,
-                url: new URL(normalized, TRUFFLED_BASE).href,
+                url: mappedUrl || `/truffled-html/${localSlug}.html`,
                 cover: normalizedThumb ? new URL(normalizedThumb, TRUFFLED_BASE).href : '',
             });
         }
@@ -1836,6 +2008,53 @@ app.get('/truffled-catalog', async (_req, res) => {
         return res.json(items);
     } catch (error) {
         return res.status(500).json({ error: `failed to build truffled catalog: ${error.message}` });
+    }
+});
+
+// Build Totally Science catalog from CloudFront homepage cards.
+app.get('/totalscience-catalog', async (_req, res) => {
+    try {
+        const response = await fetch(TOTALLY_SCIENCE_BASE);
+        if (!response.ok) {
+            return res.status(502).json({ error: `totally science fetch failed: ${response.status}` });
+        }
+
+        const html = await response.text();
+        const items = [];
+        const seen = new Set();
+        const pushGame = (slugRaw, nameRaw, coverRaw = '') => {
+            const slug = String(slugRaw || '').trim().replace(/^\.?\//, '').replace(/^\/+/, '').replace(/\/+$/, '');
+            const name = String(nameRaw || '').trim().replace(/\s+/g, ' ');
+            if (!slug || !name) return;
+            if (/^(t|tag|about|contact|privacy-policy|all-tags|new-games|recently-played-games|page)(\/|$)/i.test(slug)) return;
+            const key = `${slug.toLowerCase()}|${name.toLowerCase()}`;
+            if (seen.has(key)) return;
+            seen.add(key);
+
+            const normalizedCover = String(coverRaw || '').trim().replace(/^\.?\//, '').replace(/^\/+/, '');
+            items.push({
+                id: `totalscience-${slug.toLowerCase()}`,
+                name,
+                url: new URL(`${slug}/`, TOTALLY_SCIENCE_BASE).href,
+                cover: normalizedCover ? new URL(normalizedCover, TOTALLY_SCIENCE_BASE).href : '',
+            });
+        };
+
+        const cardRe = /<article[^>]*class="[^"]*\bc-card\b[^"]*"[\s\S]*?<img[^>]*src="([^"]+)"[\s\S]*?<div[^>]*class="c-card__title"[^>]*>\s*<a[^>]*href="\.\/([^"\/]+)\/"[^>]*>([^<]+)<\/a>/gi;
+        let m;
+        while ((m = cardRe.exec(html)) !== null) {
+            pushGame(m[2], m[3], m[1]);
+        }
+
+        const rowRe = /<div[^>]*onclick="location\.href='\/([^'\/]+)\/'"[^>]*>[\s\S]*?<img[^>]*src="([^"]+)"[\s\S]*?<h3[^>]*>([^<]+)<\/h3>/gi;
+        while ((m = rowRe.exec(html)) !== null) {
+            pushGame(m[1], m[3], m[2]);
+        }
+
+        items.sort((a, b) => a.name.localeCompare(b.name));
+        return res.json(items);
+    } catch (error) {
+        return res.status(500).json({ error: `failed to build totally science catalog: ${error.message}` });
     }
 });
 
