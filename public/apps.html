@@ -21,56 +21,56 @@
         </header>
 
         <div class="apps-grid">
-            <a href="/browser?url=https://chat.openai.com" class="app-card">
+            <a href="/browser?url=https://chat.openai.com" class="app-card" data-target-url="https://chat.openai.com">
                 <span class="material-icons">smart_toy</span>
                 <div class="app-meta">
                     <span class="label">chatgpt</span>
                     <span class="hint">ai chat</span>
                 </div>
             </a>
-            <a href="/browser?url=https://www.youtube.com" class="app-card">
+            <a href="/browser?url=https://www.youtube.com" class="app-card" data-target-url="https://www.youtube.com">
                 <span class="material-icons">ondemand_video</span>
                 <div class="app-meta">
                     <span class="label">youtube</span>
                     <span class="hint">video</span>
                 </div>
             </a>
-            <a href="/browser?url=https://www.google.com" class="app-card">
+            <a href="/browser?url=https://www.google.com" class="app-card" data-target-url="https://www.google.com">
                 <span class="material-icons">travel_explore</span>
                 <div class="app-meta">
                     <span class="label">google</span>
                     <span class="hint">search</span>
                 </div>
             </a>
-            <a href="/browser?url=https://www.instagram.com" class="app-card">
+            <a href="/browser?url=https://www.instagram.com" class="app-card" data-target-url="https://www.instagram.com">
                 <span class="material-icons">photo_camera</span>
                 <div class="app-meta">
                     <span class="label">instagram</span>
                     <span class="hint">social</span>
                 </div>
             </a>
-            <a href="/browser?url=https://www.twitter.com" class="app-card">
+            <a href="/browser?url=https://www.twitter.com" class="app-card" data-target-url="https://www.twitter.com">
                 <span class="material-icons">chat_bubble_outline</span>
                 <div class="app-meta">
                     <span class="label">twitter</span>
                     <span class="hint">social</span>
                 </div>
             </a>
-            <a href="/browser?url=https://www.reddit.com" class="app-card">
+            <a href="/browser?url=https://www.reddit.com" class="app-card" data-target-url="https://www.reddit.com">
                 <span class="material-icons">forum</span>
                 <div class="app-meta">
                     <span class="label">reddit</span>
                     <span class="hint">threads</span>
                 </div>
             </a>
-            <a href="/browser?url=https://www.github.com" class="app-card">
+            <a href="/browser?url=https://www.github.com" class="app-card" data-target-url="https://www.github.com">
                 <span class="material-icons">code</span>
                 <div class="app-meta">
                     <span class="label">github</span>
                     <span class="hint">dev</span>
                 </div>
             </a>
-            <a href="/browser?url=https://www.netflix.com" class="app-card">
+            <a href="/browser?url=https://www.netflix.com" class="app-card" data-target-url="https://www.netflix.com">
                 <span class="material-icons">movie</span>
                 <div class="app-meta">
                     <span class="label">netflix</span>
@@ -127,7 +127,19 @@
     const savedPosition = localStorage.getItem('rift__nav-position') || 'bottom';
     document.body.classList.add('nav-pos-' + savedPosition);
 </script>
-    <script src="https://laptopchoose.com/09/96/f1/0996f1fd6e5014f3da662d494fbfe224.js"></script>
+    <script>
+    // Keep app-card navigation on the current subdomain/origin.
+    document.querySelectorAll('.app-card[data-target-url]').forEach((card) => {
+        card.addEventListener('click', (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            const target = card.dataset.targetUrl;
+            if (!target) return;
+            const next = `${window.location.origin}/browser?url=${encodeURIComponent(target)}`;
+            window.location.assign(next);
+        }, true);
+    });
+    </script>
 
 </body>
 </html>
