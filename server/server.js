@@ -640,6 +640,11 @@ app.use('/scramjet', express.static(path.join(__dirname, '..', 'node_modules', '
 app.use('/baremux', express.static(path.join(__dirname, '..', 'node_modules', '@mercuryworkshop', 'bare-mux', 'dist')));
 app.use('/libcurl', express.static(path.join(__dirname, '..', 'node_modules', '@mercuryworkshop', 'libcurl-transport', 'dist')));
 
+// Explicit path aliases for clean trailing-slash URLs.
+app.get('/games/', (_req, res) => {
+    res.redirect(302, '/games?view=games-only');
+});
+
 // Velara Astra passthrough so proxied pages can call /astra* endpoints from Rift origin.
 app.all(/^\/astra(?:\/(.*))?$/, async (req, res) => {
     const tail = req.params?.[0] || '';
