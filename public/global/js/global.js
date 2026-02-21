@@ -1,3 +1,54 @@
+const RIFT_APPEARANCE = {
+    THEME_KEY: 'rift__theme',
+    RAIN_KEY: 'rift__rain-enabled',
+    DEFAULT_THEME: 'midnight',
+    THEMES: [
+        'midnight', 'ocean', 'emerald', 'sunset', 'rose', 'violet',
+        'amber', 'crimson', 'arctic', 'graphite', 'neon', 'cobalt'
+    ],
+};
+
+function applyRiftAppearance() {
+    if (!document.body) return;
+
+    const rawTheme = String(localStorage.getItem(RIFT_APPEARANCE.THEME_KEY) || RIFT_APPEARANCE.DEFAULT_THEME).toLowerCase();
+    const theme = RIFT_APPEARANCE.THEMES.includes(rawTheme) ? rawTheme : RIFT_APPEARANCE.DEFAULT_THEME;
+
+    for (const cls of Array.from(document.body.classList)) {
+        if (cls.startsWith('theme-')) document.body.classList.remove(cls);
+    }
+    document.body.classList.add(`theme-${theme}`);
+
+    const rainEnabled = localStorage.getItem(RIFT_APPEARANCE.RAIN_KEY) !== 'false';
+    document.body.classList.toggle('rain-disabled', !rainEnabled);
+}
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', applyRiftAppearance, { once: true });
+} else {
+    applyRiftAppearance();
+}
+
+window.addEventListener('storage', (event) => {
+    if (event.key === RIFT_APPEARANCE.THEME_KEY || event.key === RIFT_APPEARANCE.RAIN_KEY) {
+        applyRiftAppearance();
+    }
+});
+
+window.RiftAppearance = {
+    ...RIFT_APPEARANCE,
+    apply: applyRiftAppearance,
+    setTheme(theme) {
+        const next = String(theme || '').toLowerCase();
+        localStorage.setItem(this.THEME_KEY, this.THEMES.includes(next) ? next : this.DEFAULT_THEME);
+        this.apply();
+    },
+    setRainEnabled(enabled) {
+        localStorage.setItem(this.RAIN_KEY, enabled ? 'true' : 'false');
+        this.apply();
+    },
+};
+
 document.addEventListener('DOMContentLoaded', function () {
     const typingText = document.getElementById('typingText');
 
@@ -121,6 +172,8 @@ document.addEventListener('DOMContentLoaded', () => {
         'rift__launch-mode',
         'rift__disguise-title',
         'rift__disguise-favicon',
+        'rift__theme',
+        'rift__rain-enabled',
     ];
 
     async function request(url, options = {}) {

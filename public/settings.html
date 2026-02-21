@@ -83,13 +83,40 @@
         </div>
         <p class="settings-option-desc">vertical navigation bar on the right side of the screen.</p>
     </div>
-    <div class="switcher" id="nav-position-switcher">
+                <div class="switcher" id="nav-position-switcher">
         <button id="nav-bottom">bottom</button>
         <button id="nav-top">top</button>
         <button id="nav-left">left</button>
         <button id="nav-right">right</button>
     </div>
 </div>
+                <h2>theme</h2>
+                <p class="settings-hint">pick a color theme for rift.</p>
+                <div class="settings-group">
+                    <div class="theme-grid" id="theme-grid">
+                        <button class="theme-chip" data-theme="midnight"><span class="swatch"></span>midnight</button>
+                        <button class="theme-chip" data-theme="ocean"><span class="swatch"></span>ocean</button>
+                        <button class="theme-chip" data-theme="emerald"><span class="swatch"></span>emerald</button>
+                        <button class="theme-chip" data-theme="sunset"><span class="swatch"></span>sunset</button>
+                        <button class="theme-chip" data-theme="rose"><span class="swatch"></span>rose</button>
+                        <button class="theme-chip" data-theme="violet"><span class="swatch"></span>violet</button>
+                        <button class="theme-chip" data-theme="amber"><span class="swatch"></span>amber</button>
+                        <button class="theme-chip" data-theme="crimson"><span class="swatch"></span>crimson</button>
+                        <button class="theme-chip" data-theme="arctic"><span class="swatch"></span>arctic</button>
+                        <button class="theme-chip" data-theme="graphite"><span class="swatch"></span>graphite</button>
+                        <button class="theme-chip" data-theme="neon"><span class="swatch"></span>neon</button>
+                        <button class="theme-chip" data-theme="cobalt"><span class="swatch"></span>cobalt</button>
+                    </div>
+                </div>
+
+                <h2>rain background</h2>
+                <p class="settings-hint">toggle the animated rain overlay.</p>
+                <div class="settings-group">
+                    <div class="switcher" id="rain-switcher">
+                        <button id="rain-on">on</button>
+                        <button id="rain-off">off</button>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -142,7 +169,6 @@
             const saveBtn = document.getElementById('cloak-save');
             const resetBtn = document.getElementById('cloak-reset');
 
-            // Populate from RiftShield
             const current = RiftShield.read();
             titleInput.value = current.title;
             faviconInput.value = current.favicon;
@@ -150,6 +176,7 @@
             saveBtn.addEventListener('click', () => {
                 RiftShield.save(titleInput.value.trim(), faviconInput.value.trim());
                 RiftOverlay.toast('cloak saved');
+                window.RiftAuth?.saveLocalSettings?.().catch(() => {});
             });
 
             resetBtn.addEventListener('click', () => {
@@ -158,59 +185,89 @@
                     titleInput.value = '';
                     faviconInput.value = '';
                     RiftOverlay.toast('cloak cleared');
+                    window.RiftAuth?.saveLocalSettings?.().catch(() => {});
                 });
             });
 
-            // Launch mode switcher
             const LAUNCH_KEY = 'rift__launch-mode';
             let mode = localStorage.getItem(LAUNCH_KEY) || 'window';
-
-            const sync = () => {
-                document.querySelectorAll('#mode-switcher button').forEach(btn => {
+            const syncMode = () => {
+                document.querySelectorAll('#mode-switcher button').forEach((btn) => {
                     btn.classList.toggle('active', btn.id === 'launch-' + mode);
                 });
             };
-            sync();
-
-            document.querySelectorAll('#mode-switcher button').forEach(btn => {
+            syncMode();
+            document.querySelectorAll('#mode-switcher button').forEach((btn) => {
                 btn.addEventListener('click', () => {
                     mode = btn.id.replace('launch-', '');
                     localStorage.setItem(LAUNCH_KEY, mode);
-                    sync();
+                    syncMode();
                     RiftOverlay.toast('launch mode: ' + mode);
+                    window.RiftAuth?.saveLocalSettings?.().catch(() => {});
                 });
             });
+
+            const NAV_POS_KEY = 'rift__nav-position';
+            let navPosition = localStorage.getItem(NAV_POS_KEY) || 'bottom';
+            const syncNavPosition = () => {
+                document.querySelectorAll('#nav-position-switcher button').forEach((btn) => {
+                    btn.classList.toggle('active', btn.id === 'nav-' + navPosition);
+                });
+                document.body.className = document.body.className.replace(/nav-pos-\w+/g, '');
+                document.body.classList.add('nav-pos-' + navPosition);
+            };
+            syncNavPosition();
+            document.querySelectorAll('#nav-position-switcher button').forEach((btn) => {
+                btn.addEventListener('click', () => {
+                    navPosition = btn.id.replace('nav-', '');
+                    localStorage.setItem(NAV_POS_KEY, navPosition);
+                    syncNavPosition();
+                    RiftOverlay.toast('nav position: ' + navPosition);
+                    window.RiftAuth?.saveLocalSettings?.().catch(() => {});
+                });
+            });
+
+            const themeButtons = Array.from(document.querySelectorAll('#theme-grid .theme-chip'));
+            const syncTheme = () => {
+                const currentTheme = localStorage.getItem('rift__theme') || 'midnight';
+                themeButtons.forEach((btn) => btn.classList.toggle('active', btn.dataset.theme === currentTheme));
+            };
+            syncTheme();
+            themeButtons.forEach((btn) => {
+                btn.addEventListener('click', () => {
+                    const theme = btn.dataset.theme || 'midnight';
+                    window.RiftAppearance?.setTheme(theme);
+                    syncTheme();
+                    RiftOverlay.toast('theme: ' + theme);
+                    window.RiftAuth?.saveLocalSettings?.().catch(() => {});
+                });
+            });
+
+            let rainEnabled = localStorage.getItem('rift__rain-enabled') !== 'false';
+            const syncRain = () => {
+                document.getElementById('rain-on')?.classList.toggle('active', rainEnabled);
+                document.getElementById('rain-off')?.classList.toggle('active', !rainEnabled);
+            };
+            syncRain();
+            document.getElementById('rain-on')?.addEventListener('click', () => {
+                rainEnabled = true;
+                window.RiftAppearance?.setRainEnabled(true);
+                syncRain();
+                RiftOverlay.toast('rain: on');
+                window.RiftAuth?.saveLocalSettings?.().catch(() => {});
+            });
+            document.getElementById('rain-off')?.addEventListener('click', () => {
+                rainEnabled = false;
+                window.RiftAppearance?.setRainEnabled(false);
+                syncRain();
+                RiftOverlay.toast('rain: off');
+                window.RiftAuth?.saveLocalSettings?.().catch(() => {});
+            });
+
+            const savedPosition = localStorage.getItem('rift__nav-position') || 'bottom';
+            document.body.classList.add('nav-pos-' + savedPosition);
         });
-
-        // Navigation position switcher
-const NAV_POS_KEY = 'rift__nav-position';
-let navPosition = localStorage.getItem(NAV_POS_KEY) || 'bottom';
-
-const syncNavPosition = () => {
-    document.querySelectorAll('#nav-position-switcher button').forEach(btn => {
-        btn.classList.toggle('active', btn.id === 'nav-' + navPosition);
-    });
-    // Apply position class to body
-    document.body.className = document.body.className.replace(/nav-pos-\w+/g, '');
-    document.body.classList.add('nav-pos-' + navPosition);
-};
-syncNavPosition();
-
-document.querySelectorAll('#nav-position-switcher button').forEach(btn => {
-    btn.addEventListener('click', () => {
-        navPosition = btn.id.replace('nav-', '');
-        localStorage.setItem(NAV_POS_KEY, navPosition);
-        syncNavPosition();
-        RiftOverlay.toast('nav position: ' + navPosition);
-    });
-});
     </script>
-
-    <script>
-    // Apply saved nav position
-    const savedPosition = localStorage.getItem('rift__nav-position') || 'bottom';
-    document.body.classList.add('nav-pos-' + savedPosition);
-</script>
 
 </body>
 </html>
