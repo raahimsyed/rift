@@ -151,70 +151,17 @@
         </button>
     </nav>
 
-    <!-- What's New Popup -->
-<div id="whats-new-popup" class="modal">
+    <!-- Partner Popup -->
+<div id="partner-popup" class="modal">
     <div class="modal-content">
-        <h3>What's New?</h3>
-        <div style="display: flex; flex-direction: column; gap: 12px;">
-            <div style="display: flex; align-items: start; gap: 10px;">
-                <span class="material-icons" style="color: rgba(255, 255, 255, 0.7);">language</span>
-                <div>
-                    <strong style="color: white; font-size: 13px;">Browser Overhaul</strong>
-                    <p style="margin: 4px 0 0; font-size: 12px; color: rgba(255, 255, 255, 0.6);">Refined browser layout, centered viewport, restored Rift browser home, tab panel controls, and popout support.</p>
-                </div>
-            </div>
-            <div style="display: flex; align-items: start; gap: 10px;">
-                <span class="material-icons" style="color: rgba(255, 255, 255, 0.7);">sports_esports</span>
-                <div>
-                    <strong style="color: white; font-size: 13px;">Expanded Game Vault</strong>
-                    <p style="margin: 4px 0 0; font-size: 12px; color: rgba(255, 255, 255, 0.6);">Added GN-Math, SDXP, Truffled, Velara, PeteZah Lite, and Seraph libraries with source filters and reduced duplicates.</p>
-                </div>
-            </div>
-            <div style="display: flex; align-items: start; gap: 10px;">
-                <span class="material-icons" style="color: rgba(255, 255, 255, 0.7);">play_circle</span>
-                <div>
-                    <strong style="color: white; font-size: 13px;">Game Launch Flow</strong>
-                    <p style="margin: 4px 0 0; font-size: 12px; color: rgba(255, 255, 255, 0.6);">New game detail modal with image, favorite, save, and play. Loading screen now hides browser UI during launch.</p>
-                </div>
-            </div>
-            <div style="display: flex; align-items: start; gap: 10px;">
-                <span class="material-icons" style="color: rgba(255, 255, 255, 0.7);">person</span>
-                <div>
-                    <strong style="color: white; font-size: 13px;">Account + Cloud Save</strong>
-                    <p style="margin: 4px 0 0; font-size: 12px; color: rgba(255, 255, 255, 0.6);">Signup/login with session auth and synced settings/game progress support.</p>
-                </div>
-            </div>
-            <div style="display: flex; align-items: start; gap: 10px;">
-                <span class="material-icons" style="color: rgba(255, 255, 255, 0.7);">forum</span>
-                <div>
-                    <strong style="color: white; font-size: 13px;">Chatrooms System</strong>
-                    <p style="margin: 4px 0 0; font-size: 12px; color: rgba(255, 255, 255, 0.6);">Public/private room creation, passwords, pinned #lobby + #links, owner delete, and admin override for user rift.</p>
-                </div>
-            </div>
-            <div style="display: flex; align-items: start; gap: 10px;">
-                <span class="material-icons" style="color: rgba(255, 255, 255, 0.7);">schedule</span>
-                <div>
-                    <strong style="color: white; font-size: 13px;">Auto Cleanup</strong>
-                    <p style="margin: 4px 0 0; font-size: 12px; color: rgba(255, 255, 255, 0.6);">Non-system chatrooms are automatically removed after 24 hours of inactivity.</p>
-                </div>
-            </div>
-            <div style="display: flex; align-items: start; gap: 10px;">
-                <span class="material-icons" style="color: rgba(255, 255, 255, 0.7);">security</span>
-                <div>
-                    <strong style="color: white; font-size: 13px;">Proxy + Compatibility Fixes</strong>
-                    <p style="margin: 4px 0 0; font-size: 12px; color: rgba(255, 255, 255, 0.6);">Improved proxy handling for assets/forms, Velara endpoints passthrough, and broader game-site compatibility fixes.</p>
-                </div>
-            </div>
-            <div style="display: flex; align-items: start; gap: 10px;">
-                <span class="material-icons" style="color: rgba(255, 255, 255, 0.7);">palette</span>
-                <div>
-                    <strong style="color: white; font-size: 13px;">Brand/UX Polish</strong>
-                    <p style="margin: 4px 0 0; font-size: 12px; color: rgba(255, 255, 255, 0.6);">Updated favicon/logo wiring, fixed broken page CSS issues, and improved overall UI consistency.</p>
-                </div>
-            </div>
+        <h3>New partner! SPLASH</h3>
+        <div style="display: grid; gap: 14px;">
+            <img src="https://splash.best/v2Logo.png" alt="SPLASH logo" style="width: 100%; max-width: 320px; margin: 0 auto; border-radius: 10px; border: 1px solid rgba(255,255,255,0.18); background: rgba(255,255,255,0.06);" />
+            <p style="margin: 0; text-align: center; font-size: 13px; color: rgba(255, 255, 255, 0.72);">Join SPLASH on Discord:</p>
+            <a href="https://discord.gg/JCdgDVtAHP" target="_blank" rel="noopener noreferrer" class="save-btn" style="display: block; text-align: center; text-decoration: none;">https://discord.gg/JCdgDVtAHP</a>
         </div>
         <div class="modal-buttons" style="margin-top: 16px;">
-            <button id="whats-new-close" class="save-btn" style="flex: 1;">Got it!</button>
+            <button id="partner-close" class="save-btn" style="flex: 1;">Got it!</button>
         </div>
     </div>
 </div>
@@ -237,24 +184,12 @@
 </script>
 
 <script>
-    // What's New popup (shows once per session)
+    // Partner popup
     document.addEventListener('DOMContentLoaded', () => {
-        const WHATS_NEW_KEY = 'rift__whats-new-seen-v2';
-        const popup = document.getElementById('whats-new-popup');
-        const closeBtn = document.getElementById('whats-new-close');
-        
-        // Check if user has seen popup this session
-        const seenThisSession = sessionStorage.getItem(WHATS_NEW_KEY);
-        
-        if (!seenThisSession) {
-            // Show popup after a short delay
-            setTimeout(() => {
-                popup.classList.add('active');
-            }, 500);
-            
-            // Mark as seen for this session
-            sessionStorage.setItem(WHATS_NEW_KEY, 'true');
-        }
+        const popup = document.getElementById('partner-popup');
+        const closeBtn = document.getElementById('partner-close');
+        if (!popup || !closeBtn) return;
+        setTimeout(() => popup.classList.add('active'), 350);
         
         // Close popup
         closeBtn.addEventListener('click', () => {
