@@ -117,6 +117,15 @@
                         <button id="rain-off">off</button>
                     </div>
                 </div>
+
+                <h2>performance mode</h2>
+                <p class="settings-hint">turn this on to reduce lag by disabling heavy visual effects.</p>
+                <div class="settings-group">
+                    <div class="switcher" id="performance-switcher">
+                        <button id="perf-on">on</button>
+                        <button id="perf-off">off</button>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -258,6 +267,27 @@
                 window.RiftAppearance?.setRainEnabled(false);
                 syncRain();
                 RiftOverlay.toast('rain: off');
+                window.RiftAuth?.saveLocalSettings?.().catch(() => {});
+            });
+
+            let performanceEnabled = localStorage.getItem('rift__performance-mode') === 'true';
+            const syncPerformance = () => {
+                document.getElementById('perf-on')?.classList.toggle('active', performanceEnabled);
+                document.getElementById('perf-off')?.classList.toggle('active', !performanceEnabled);
+            };
+            syncPerformance();
+            document.getElementById('perf-on')?.addEventListener('click', () => {
+                performanceEnabled = true;
+                window.RiftAppearance?.setPerformanceMode(true);
+                syncPerformance();
+                RiftOverlay.toast('performance mode: on');
+                window.RiftAuth?.saveLocalSettings?.().catch(() => {});
+            });
+            document.getElementById('perf-off')?.addEventListener('click', () => {
+                performanceEnabled = false;
+                window.RiftAppearance?.setPerformanceMode(false);
+                syncPerformance();
+                RiftOverlay.toast('performance mode: off');
                 window.RiftAuth?.saveLocalSettings?.().catch(() => {});
             });
 

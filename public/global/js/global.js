@@ -1,6 +1,7 @@
 const RIFT_APPEARANCE = {
     THEME_KEY: 'rift__theme',
     RAIN_KEY: 'rift__rain-enabled',
+    PERFORMANCE_KEY: 'rift__performance-mode',
     DEFAULT_THEME: 'midnight',
     THEMES: [
         'midnight', 'ocean', 'emerald', 'sunset', 'rose', 'violet',
@@ -20,7 +21,9 @@ function applyRiftAppearance() {
     document.body.classList.add(`theme-${theme}`);
 
     const rainEnabled = localStorage.getItem(RIFT_APPEARANCE.RAIN_KEY) !== 'false';
-    document.body.classList.toggle('rain-disabled', !rainEnabled);
+    const performanceMode = localStorage.getItem(RIFT_APPEARANCE.PERFORMANCE_KEY) === 'true';
+    document.body.classList.toggle('performance-mode', performanceMode);
+    document.body.classList.toggle('rain-disabled', performanceMode || !rainEnabled);
 }
 
 if (document.readyState === 'loading') {
@@ -30,7 +33,11 @@ if (document.readyState === 'loading') {
 }
 
 window.addEventListener('storage', (event) => {
-    if (event.key === RIFT_APPEARANCE.THEME_KEY || event.key === RIFT_APPEARANCE.RAIN_KEY) {
+    if (
+        event.key === RIFT_APPEARANCE.THEME_KEY ||
+        event.key === RIFT_APPEARANCE.RAIN_KEY ||
+        event.key === RIFT_APPEARANCE.PERFORMANCE_KEY
+    ) {
         applyRiftAppearance();
     }
 });
@@ -45,6 +52,10 @@ window.RiftAppearance = {
     },
     setRainEnabled(enabled) {
         localStorage.setItem(this.RAIN_KEY, enabled ? 'true' : 'false');
+        this.apply();
+    },
+    setPerformanceMode(enabled) {
+        localStorage.setItem(this.PERFORMANCE_KEY, enabled ? 'true' : 'false');
         this.apply();
     },
 };
@@ -114,6 +125,7 @@ function runRiftBootTerminal(bootRoot, onLoadingShown) {
 
 function mountRiftBootScreen() {
     if (!document.body) return;
+    if (localStorage.getItem(RIFT_APPEARANCE.PERFORMANCE_KEY) === 'true') return;
     if (sessionStorage.getItem(RIFT_BOOT.SESSION_KEY) === 'true') return;
     sessionStorage.setItem(RIFT_BOOT.SESSION_KEY, 'true');
 
@@ -189,6 +201,7 @@ if (document.readyState === 'loading') {
 
 document.addEventListener('DOMContentLoaded', function () {
     const typingText = document.getElementById('typingText');
+    const performanceMode = localStorage.getItem(RIFT_APPEARANCE.PERFORMANCE_KEY) === 'true';
 
     // Quotes to cycle through
     const quotes = [
@@ -227,59 +240,67 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     // Start typing effect
-    if (typingText) typeEffect();
+    if (typingText) {
+        if (performanceMode) {
+            typingText.textContent = 'performance mode enabled';
+        } else {
+            typeEffect();
+        }
+    }
 
     // Cursor light effect
-    const cursorLight = document.createElement('div');
-    cursorLight.className = 'cursor-light';
-    document.body.appendChild(cursorLight);
+    if (!performanceMode) {
+        const cursorLight = document.createElement('div');
+        cursorLight.className = 'cursor-light';
+        document.body.appendChild(cursorLight);
 
-    // Store previous positions for line trail
-    let prevX = null;
-    let prevY = null;
+        // Store previous positions for line trail
+        let prevX = null;
+        let prevY = null;
 
-    document.addEventListener('mousemove', function (e) {
-        // Skip cursor effects when game viewer is active
-        const viewer = document.getElementById('game-viewer');
-        if (viewer && viewer.classList.contains('active')) {
-            cursorLight.style.display = 'none';
-            return;
-        }
-        cursorLight.style.display = '';
+        document.addEventListener('mousemove', function (e) {
+            // Skip cursor effects when game viewer is active
+            const viewer = document.getElementById('game-viewer');
+            if (viewer && viewer.classList.contains('active')) {
+                cursorLight.style.display = 'none';
+                return;
+            }
+            cursorLight.style.display = '';
 
-        // Update light position
-        cursorLight.style.left = e.clientX + 'px';
-        cursorLight.style.top = e.clientY + 'px';
+            // Update light position
+            cursorLight.style.left = e.clientX + 'px';
+            cursorLight.style.top = e.clientY + 'px';
 
-        // Create line trail
-        if (prevX !== null && prevY !== null) {
-            const trail = document.createElement('div');
-            trail.className = 'cursor-trail';
+            // Create line trail
+            if (prevX !== null && prevY !== null) {
+                const trail = document.createElement('div');
+                trail.className = 'cursor-trail';
 
-            // Calculate distance and angle between points
-            const dx = e.clientX - prevX;
-            const dy = e.clientY - prevY;
-            const distance = Math.sqrt(dx * dx + dy * dy);
-            const angle = Math.atan2(dy, dx) * 180 / Math.PI;
+                // Calculate distance and angle between points
+                const dx = e.clientX - prevX;
+                const dy = e.clientY - prevY;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                const angle = Math.atan2(dy, dx) * 180 / Math.PI;
 
-            // Position and style the line
-            trail.style.left = prevX + 'px';
-            trail.style.top = prevY + 'px';
-            trail.style.width = distance + 'px';
-            trail.style.transform = `rotate(${angle}deg)`;
-            trail.style.transformOrigin = '0 50%';
+                // Position and style the line
+                trail.style.left = prevX + 'px';
+                trail.style.top = prevY + 'px';
+                trail.style.width = distance + 'px';
+                trail.style.transform = `rotate(${angle}deg)`;
+                trail.style.transformOrigin = '0 50%';
 
-            document.body.appendChild(trail);
+                document.body.appendChild(trail);
 
-            // Remove trail after animation
-            setTimeout(() => {
-                trail.remove();
-            }, 500);
-        }
+                // Remove trail after animation
+                setTimeout(() => {
+                    trail.remove();
+                }, 500);
+            }
 
-        prevX = e.clientX;
-        prevY = e.clientY;
-    });
+            prevX = e.clientX;
+            prevY = e.clientY;
+        });
+    }
 
     // Nav toggle
     const nav = document.querySelector('.bottom-nav');
@@ -312,6 +333,7 @@ document.addEventListener('DOMContentLoaded', () => {
         'rift__disguise-favicon',
         'rift__theme',
         'rift__rain-enabled',
+        'rift__performance-mode',
     ];
 
     async function request(url, options = {}) {

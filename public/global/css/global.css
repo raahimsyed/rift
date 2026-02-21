@@ -69,6 +69,22 @@ body.rain-disabled::before {
   opacity: 0;
 }
 
+body.performance-mode::before {
+  opacity: 0 !important;
+}
+
+body.performance-mode .cursor-trail,
+body.performance-mode .cursor-light,
+body.performance-mode .rift-boot-screen {
+  display: none !important;
+}
+
+body.performance-mode * {
+  animation-duration: 0.001ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.001ms !important;
+}
+
 body.theme-midnight {}
 body.theme-ocean { --rift-bg-base:#041219; --rift-bg-glow-1:rgba(0,153,204,0.24); --rift-bg-glow-2:rgba(0,95,133,0.18); --rift-accent:#51d7ff; --rift-accent-soft:rgba(81,215,255,0.28); }
 body.theme-emerald { --rift-bg-base:#08140f; --rift-bg-glow-1:rgba(22,160,90,0.26); --rift-bg-glow-2:rgba(12,94,53,0.2); --rift-accent:#57e389; --rift-accent-soft:rgba(87,227,137,0.3); }
