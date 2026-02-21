@@ -120,7 +120,7 @@ function mountRiftBootScreen() {
     boot.innerHTML = `
         <div class="rift-boot-grid"></div>
         <div class="rift-boot-content">
-            <div class="rift-boot-logo">rift</div>
+            <div class="rift-boot-logo">Welcome to Rift</div>
             <div class="rift-boot-subtitle">powered by scramjet</div>
             <div class="rift-boot-subtitle">inspired by infamous</div>
             <div class="rift-boot-terminal" aria-hidden="true">
