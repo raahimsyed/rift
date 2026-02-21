@@ -38,7 +38,11 @@ const VELARA_ORIGIN = 'https://velara.my';
 const AUDIUS_API_BASE = 'https://discoveryprovider.audius.co';
 const JAMENDO_API_BASE = 'https://api.jamendo.com/v3.0';
 const JAMENDO_CLIENT_ID = String(process.env.JAMENDO_CLIENT_ID || '').trim();
-const AUTH_DB_PATH = path.join(__dirname, '..', 'data', 'auth-db.json');
+const AUTH_DB_PATH = process.env.AUTH_DB_PATH
+    ? path.resolve(process.env.AUTH_DB_PATH)
+    : (process.env.VERCEL
+        ? path.join('/tmp', 'rift-data', 'auth-db.json')
+        : path.join(__dirname, '..', 'data', 'auth-db.json'));
 const SESSION_COOKIE = 'rift_sid';
 const SESSION_TTL_MS = 1000 * 60 * 60 * 24 * 30; // 30 days
 const ACTIVE_USER_WINDOW_MS = 1000 * 60 * 10; // 10 minutes
