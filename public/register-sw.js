@@ -1,5 +1,5 @@
 "use strict";
-const stockSW = "./sw.js";
+const stockSW = "/sw.js";
 
 /**
  * List of hostnames that are allowed to run serviceworkers on http://
@@ -21,5 +21,5 @@ async function registerSW() {
           throw new Error("Your browser doesn't support service workers.");
      }
 
-     await navigator.serviceWorker.register(stockSW);
+     await navigator.serviceWorker.register(stockSW, { scope: "/" });
 }
