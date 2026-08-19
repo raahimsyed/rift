@@ -169,9 +169,9 @@
 
     <script src="/register-sw.js"></script>
     <script src="/baremux/index.js"></script>
-    <script src="/assets/scramjet/scramjet.codecs.js"></script>
-    <script src="/assets/scramjet/scramjet.config.js"></script>
-    <script src="/assets/scramjet/scramjet.bundle.js"></script>
+    <script src="/scramjet/scramjet.js"></script>
+    <script src="/controller/controller.api.js"></script>
+    <script src="/global/js/rift-scramjet.js"></script>
     <script>
         (function () {
             const frame = document.getElementById('embedFrame');
@@ -212,15 +212,12 @@
                 return String(params.get('url') || '').trim();
             }
 
-            function encodeTarget(input) {
-                const encoder = self.__scramjet$bundle?.rewriters?.url?.encodeUrl;
-                if (!encoder) return input;
-                const base = window.location.origin;
+            async function encodeTarget(input) {
                 try {
-                    return encoder(input, base);
-                } catch {
-                    const fallback = new URL(input, window.location.origin).toString();
-                    return encoder(fallback, base);
+                    return await self.RiftScramjet.encodeUrl(frame, input);
+                } catch (error) {
+                    console.error('[rift-embed] failed to encode proxy url', error);
+                    return input;
                 }
             }
 
@@ -342,12 +339,8 @@
 
                 status.textContent = currentTarget;
                 try {
-                    await registerSW();
-                    await ensureTransport();
-                    let ok = await testWispSocket();
-                    if (!ok) ok = await testWispHttp();
-                    if (!ok) throw new Error('Wisp websocket was not reachable on this deployment.');
-                    frame.src = encodeTarget(currentTarget);
+                    await self.RiftScramjet.ready;
+                    frame.src = await encodeTarget(currentTarget);
                     showFrame();
                 } catch (err) {
                     console.error('Rift embed failed', err);

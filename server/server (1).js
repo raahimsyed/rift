@@ -4491,6 +4491,7 @@ app.use(express.static(PUBLIC_DIR, { redirect: false }));
 app.use('/assets', express.static(path.join(__dirname, '..', 'assets')));
 app.use('/components', express.static(path.join(__dirname, '..', 'components')));
 app.use('/scramjet', express.static(path.join(__dirname, '..', 'node_modules', '@mercuryworkshop', 'scramjet', 'dist')));
+app.use('/controller', express.static(path.join(__dirname, '..', 'node_modules', '@mercuryworkshop', 'scramjet-controller', 'dist')));
 app.use('/baremux', express.static(path.join(__dirname, '..', 'node_modules', '@mercuryworkshop', 'bare-mux', 'dist')));
 app.use('/libcurl', express.static(path.join(__dirname, '..', 'node_modules', '@mercuryworkshop', 'libcurl-transport', 'dist')));
 app.use('/epoxy', express.static(path.join(__dirname, '..', 'node_modules', '@mercuryworkshop', 'epoxy-transport', 'dist')));

@@ -657,44 +657,10 @@
             await ensureTransport();
             self.__riftEnsureTransport = ensureTransport;
 
-            await loadScript('/global/js/official-scramjet-config.js');
-            const configFactory = self.__createRiftScramjetConfig;
-            const config = typeof configFactory === 'function' ? configFactory() : null;
-            if (!config) {
-                throw new Error('official scramjet config is missing');
-            }
-
-            self.__scramjet$config = config;
-            await loadScript('/scramjet/scramjet.all.js');
-            try {
-                if (!sessionStorage.getItem(resetKey) && typeof indexedDB !== 'undefined') {
-                    await resetScramjetDatabase(config);
-                    clearStoredBareMuxState();
-                    sessionStorage.setItem(resetKey, '1');
-                } else {
-                    await ensureHealthyScramjetDatabase(config);
-                }
-            } catch (error) {
-                console.warn('[rift-browser] scramjet idb reset skipped', error);
-            }
-
-            const { ScramjetController } = self.$scramjetLoadController();
-            let controller = new ScramjetController(config);
-            try {
-                await controller.init();
-            } catch (error) {
-                const message = String(error?.message || error || '');
-                const isIdbStoreError = error?.name === 'NotFoundError' || /object stores? was not found|Failed to execute 'transaction' on 'IDBDatabase'/i.test(message);
-                if (!isIdbStoreError || sessionStorage.getItem(idbRecoveryKey)) {
-                    throw error;
-                }
-                sessionStorage.setItem(idbRecoveryKey, '1');
-                await resetScramjetDatabase(config);
-                clearStoredBareMuxState();
-                controller = new ScramjetController(config);
-                await controller.init();
-            }
-            self.__riftScramjetController = controller;
+            await loadScript('/scramjet/scramjet.js');
+            await loadScript('/controller/controller.api.js');
+            await loadScript('/global/js/rift-scramjet.js');
+            await self.RiftScramjet.ready;
         })();
     </script>
     <script>
@@ -1420,24 +1386,19 @@
 
             async function ensureScramjetReady() {
                 try {
-                    if (typeof registerSW === 'function') await registerSW();
-                    if (typeof self.__riftEnsureTransport === 'function') {
-                        await self.__riftEnsureTransport();
-                    }
-                    let wispAvailable = await testWispSocket();
-                    if (!wispAvailable) wispAvailable = await testWispHttp();
-                    return !!wispAvailable;
-                } catch {
+                    await self.RiftScramjet.ready;
+                    return true;
+                } catch (error) {
+                    console.error('[rift-browser] scramjet controller failed to initialize', error);
                     return false;
                 }
             }
 
-            function encodeTarget(targetUrl) {
-                const controller = self.__riftScramjetController;
-                if (!controller || typeof controller.encodeUrl !== 'function') return null;
+            async function encodeTarget(targetUrl, panelFrame) {
                 try {
-                    return controller.encodeUrl(targetUrl);
-                } catch {
+                    return await self.RiftScramjet.encodeUrl(panelFrame, targetUrl);
+                } catch (error) {
+                    console.error('[rift-browser] failed to encode proxy url', error);
                     return null;
                 }
             }
@@ -1474,9 +1435,9 @@
                 return targetUrl;
             }
 
-            function buildProxyUrlForMode(targetUrl, mode) {
+            async function buildProxyUrlForMode(targetUrl, mode, panelFrame) {
                 if (mode === 'scramjet') {
-                    const encoded = encodeTarget(targetUrl);
+                    const encoded = await encodeTarget(targetUrl, panelFrame);
                     return encoded || null;
                 }
                 return null;
@@ -1494,7 +1455,7 @@
                 return PROXY_CHAIN;
             }
 
-            async function resolveProxyRoute(targetUrl, options = {}) {
+            async function resolveProxyRoute(targetUrl, panelFrame, options = {}) {
                 const skippedModes = new Set(Array.isArray(options?.skipModes) ? options.skipModes : []);
                 const chain = getPreferredProxyChain(targetUrl).filter((mode) => !skippedModes.has(mode));
 
@@ -1502,7 +1463,7 @@
                     if (mode === 'scramjet') {
                         await ensureScramjetReady();
                     }
-                    const routeUrl = buildProxyUrlForMode(targetUrl, mode);
+                    const routeUrl = await buildProxyUrlForMode(targetUrl, mode, panelFrame);
                     if (!routeUrl) continue;
                     return { mode, routeUrl };
                 }
@@ -1537,7 +1498,7 @@
                         window.location.assign(resolvedTarget);
                         return;
                     }
-                    const resolvedRoute = await resolveProxyRoute(resolvedTarget, options);
+                    const resolvedRoute = await resolveProxyRoute(resolvedTarget, panelFrame, options);
                     if (navigationId !== navigationSequence) return;
                     if (requiresTopLevelContext(resolvedTarget) && options?.allowTopLevelEscape !== false) {
                         const proxyUrl = toAbsoluteRouteUrl(resolvedRoute.routeUrl);
@@ -1762,7 +1723,7 @@
                     return;
                 }
 
-                const resolvedRoute = await resolveProxyRoute(target);
+                const resolvedRoute = await resolveProxyRoute(target, getFrameForPanel(activePanel));
                 proxyMode = resolvedRoute.mode;
                 updateChrome();
                 const proxyUrl = resolvedRoute.routeUrl.startsWith('http://') || resolvedRoute.routeUrl.startsWith('https://')
@@ -1805,7 +1766,7 @@
             const forceProxy = query.get('forceProxy') === '1';
             const autoPopout = query.get('popout') === '1';
             if (autoPopout && initialTarget) {
-                const resolvedRoute = await resolveProxyRoute(initialTarget);
+                const resolvedRoute = await resolveProxyRoute(initialTarget, getFrameForPanel(0));
                 proxyMode = resolvedRoute.mode;
                 const proxyUrl = toAbsoluteRouteUrl(resolvedRoute.routeUrl);
                 window.location.replace(proxyUrl);
