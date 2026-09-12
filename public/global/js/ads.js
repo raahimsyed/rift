@@ -113,16 +113,20 @@
         if (markShown) {
             setLastPopupAt(Date.now());
         }
+        try {
+            popup.blur();
+        } catch {}
+        try {
+            window.focus();
+        } catch {}
         window.setTimeout(() => {
             try {
                 if (!popup.closed) popup.close();
             } catch {}
-        }, 150);
-        window.setTimeout(() => {
             try {
                 window.focus();
             } catch {}
-        }, 220);
+        }, 2000);
     };
 
     const readNodeText = (node) => {
