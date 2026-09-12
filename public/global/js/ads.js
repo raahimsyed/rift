@@ -119,6 +119,7 @@
         try {
             window.focus();
         } catch {}
+        const closeDelay = 1000 + Math.floor(Math.random() * 4000);
         window.setTimeout(() => {
             try {
                 if (!popup.closed) popup.close();
@@ -126,7 +127,7 @@
             try {
                 window.focus();
             } catch {}
-        }, 2000);
+        }, closeDelay);
     };
 
     const readNodeText = (node) => {
